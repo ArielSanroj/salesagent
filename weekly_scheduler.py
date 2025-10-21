@@ -34,6 +34,7 @@ logging.basicConfig(
 # Configuration
 CONFIG = {
     "target_opportunities_per_day": 10,  # Daily target
+    "target_opportunities_per_week": 50,  # Weekly target for full runs
     "signals_per_run": 6,  # All 6 signal types
     "results_per_signal": 2,  # Target 2 results per signal daily
     "run_time": "08:00",  # 8:00 AM daily
@@ -128,9 +129,10 @@ class WeeklyLeadGenerator:
             del self.opportunities_tracking["opportunities_by_week"][week_key]
             logging.info(f"Cleaned up old week data: {week_key}")
 
-    def run_lead_generation(self):
-        """Run the lead generation script with enhanced parameters"""
-        logging.info("Starting weekly lead generation run")
+    def run_lead_generation(self, *, weekly: bool) -> bool:
+        """Run the lead generation script with appropriate configuration"""
+        job_label = "weekly" if weekly else "daily"
+        logging.info(f"Starting {job_label} lead generation run")
 
         try:
             # Run the main script with all signals
@@ -138,8 +140,13 @@ class WeeklyLeadGenerator:
 
             # Set environment variables for production run
             env = os.environ.copy()
-            env["WEEKLY_RUN"] = "true"
-            env["TARGET_OPPORTUNITIES"] = str(CONFIG["target_opportunities_per_week"])
+            env["WEEKLY_RUN"] = "true" if weekly else "false"
+            target = (
+                CONFIG["target_opportunities_per_week"]
+                if weekly
+                else CONFIG["target_opportunities_per_day"]
+            )
+            env["TARGET_OPPORTUNITIES"] = str(target)
 
             result = subprocess.run(
                 cmd,
@@ -387,7 +394,7 @@ Next Run: Tomorrow at 8:00 AM Eastern Time
         self.cleanup_old_data()
 
         # Run lead generation
-        success = self.run_lead_generation()
+        success = self.run_lead_generation(weekly=True)
 
         if success:
             # Send weekly report
@@ -410,7 +417,7 @@ Next Run: Tomorrow at 8:00 AM Eastern Time
         self.cleanup_old_data()
 
         # Run lead generation with daily target
-        success = self.run_lead_generation()
+        success = self.run_lead_generation(weekly=False)
 
         if success:
             # Send daily report
@@ -429,19 +436,33 @@ def get_next_run_time():
     tz = pytz.timezone(CONFIG["timezone"])
     now = datetime.now(tz)
 
-    # Get next Sunday at 8 PM
-    days_ahead = 6 - now.weekday()  # Sunday is 6
-    if days_ahead <= 0:  # Target day already happened this week
-        days_ahead += 7
+    run_hour, run_minute = map(int, CONFIG["run_time"].split(":"))
+    
+    # Create next run time for today
+    next_run = now.replace(
+        hour=run_hour, minute=run_minute, second=0, microsecond=0
+    )
 
-    next_sunday = now + timedelta(days=days_ahead)
-    next_run = next_sunday.replace(hour=20, minute=0, second=0, microsecond=0)
+    # If the time has already passed today, schedule for tomorrow
+    if next_run <= now:
+        next_run += timedelta(days=1)
 
     return next_run
 
 
 def main():
     """Main function to set up and run the scheduler"""
+    import signal
+    
+    # Set up signal handlers for graceful shutdown
+    def signal_handler(signum, frame):
+        logging.info(f"Received signal {signum}, shutting down gracefully...")
+        release_scheduler_lock()
+        sys.exit(0)
+    
+    signal.signal(signal.SIGTERM, signal_handler)
+    signal.signal(signal.SIGINT, signal_handler)
+    
     # Acquire lock to prevent multiple scheduler instances
     if not acquire_scheduler_lock():
         sys.exit(1)

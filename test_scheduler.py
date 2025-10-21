@@ -1,63 +1,51 @@
 #!/usr/bin/env python3
 """
-Test script to verify the weekly scheduler configuration
+Test script for the daily scheduler
 """
 
-from datetime import datetime, timedelta
+import sys
+import time
+from pathlib import Path
 
-import pytz
+# Add src to path for imports
+sys.path.insert(0, str(Path(__file__).parent / "src"))
 
+from weekly_scheduler import WeeklyLeadGenerator, CONFIG
+import schedule
 
-def test_schedule_timing():
-    """Test the schedule timing configuration"""
-
-    # Configuration
-    timezone = "America/New_York"  # GMT-5
-    run_time = "20:00"  # 8 PM
-
-    print("🕐 Weekly Scheduler Schedule Test")
-    print("=" * 40)
-
-    # Get current time in timezone
-    tz = pytz.timezone(timezone)
-    now = datetime.now(tz)
-
-    print(f"Current time ({timezone}): {now.strftime('%Y-%m-%d %H:%M:%S %Z')}")
-    print(f"Target schedule: Every Sunday at {run_time}")
-
-    # Calculate next Sunday at 8 PM
-    days_ahead = 6 - now.weekday()  # Sunday is 6
-    if days_ahead <= 0:  # Target day already happened this week
-        days_ahead += 7
-
-    next_sunday = now + timedelta(days=days_ahead)
-    next_run = next_sunday.replace(hour=20, minute=0, second=0, microsecond=0)
-
-    print(f"Next scheduled run: {next_run.strftime('%Y-%m-%d %H:%M:%S %Z')}")
-
-    # Calculate time until next run
-    time_until = next_run - now
-    days = time_until.days
-    hours = time_until.seconds // 3600
-    minutes = (time_until.seconds % 3600) // 60
-
-    print(f"Time until next run: {days} days, {hours} hours, {minutes} minutes")
-
-    # Show backup schedule
-    print("\n📅 Backup Schedule:")
-    print("   - Monday at 8:00 PM (if Sunday fails)")
-    print("   - Tuesday at 8:00 PM (if Monday fails)")
-
-    # Show timezone info
-    print(f"\n🌍 Timezone Information:")
-    print(f"   - Timezone: {timezone}")
-    print(f"   - UTC Offset: GMT-5 (EST) / GMT-4 (EDT)")
-    print(
-        f"   - Current UTC time: {datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S UTC')}"
-    )
-
-    return next_run
-
+def test_scheduler():
+    """Test the scheduler setup"""
+    print("🧪 Testing Daily Scheduler Setup")
+    print("=" * 50)
+    
+    # Test configuration
+    print(f"📅 Run time: {CONFIG['run_time']}")
+    print(f"🌍 Timezone: {CONFIG['timezone']}")
+    print(f"📧 Email: {CONFIG['email_recipient']}")
+    print(f"🎯 Target: {CONFIG['target_opportunities_per_day']} opportunities per day")
+    
+    # Test scheduler setup
+    generator = WeeklyLeadGenerator()
+    
+    # Clear any existing schedules
+    schedule.clear()
+    
+    # Schedule the daily job
+    schedule.every().day.at(CONFIG["run_time"]).do(generator.run_daily_job)
+    
+    print(f"✅ Scheduler configured successfully")
+    print(f"📋 Next run: {schedule.next_run()}")
+    
+    # Test for 5 seconds
+    print("⏱️  Testing scheduler for 5 seconds...")
+    start_time = time.time()
+    
+    while time.time() - start_time < 5:
+        schedule.run_pending()
+        time.sleep(1)
+        print(f"⏰ {time.time() - start_time:.1f}s - Scheduler running...")
+    
+    print("✅ Scheduler test completed successfully!")
 
 if __name__ == "__main__":
-    test_schedule_timing()
+    test_scheduler()
