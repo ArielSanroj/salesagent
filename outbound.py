@@ -111,7 +111,7 @@ def initialize_services() -> bool:
         try:
             llm_service = LLMService(credentials_manager)
             logger.info("✅ LLM service initialized successfully")
-except Exception as e:
+        except Exception as e:
             logger.warning(f"⚠️ LLM service initialization failed: {e}")
             logger.warning("System will continue with fallback responses")
             llm_service = None
@@ -367,15 +367,15 @@ def hunter_email_verifier(email: str) -> str:
 def _check_news_api_limits() -> bool:
     """Check if we can make API calls"""
     global NEWS_API_CALL_COUNT
-    
+
     if NEWS_API_CALL_COUNT >= NEWS_API_CALL_LIMIT:
         logger.warning("NewsData.io daily call limit reached")
         return False
-    
+
     if not CONFIG.get("newsdata") or not CONFIG["newsdata"].get("api_key"):
         logger.warning("NEWSDATA_API_KEY not configured; returning empty results")
         return False
-    
+
     return True
 
 
@@ -393,14 +393,14 @@ def _handle_news_api_response(response) -> bool:
     elif response.status_code == 422:
         logger.error("NewsData.io invalid request parameters")
         return False
-    
+
     return True
 
 
 def _process_news_articles(articles: List[Dict], domains: Optional[List[str]], num_results: int) -> List[Dict]:
     """Process articles and filter by domains"""
     processed = []
-    
+
     for article in articles:
         if len(processed) >= num_results:
             break
@@ -437,7 +437,7 @@ def _process_news_articles(articles: List[Dict], domains: Optional[List[str]], n
             "article_id": article.get("article_id"),
         }
         processed.append(article_data)
-    
+
     return processed
 
 
@@ -452,14 +452,14 @@ def fetch_news_articles(
 
     aggregated = []
     endpoint = NEWSDATA_LATEST_URL
-    
+
     # Build base parameters
     params = {
         "apikey": CONFIG["newsdata"]["api_key"],
         "q": query,
         "language": "en",
     }
-    
+
     page_token = None
     max_pages = 5  # Prevent infinite loops
     page_count = 0
