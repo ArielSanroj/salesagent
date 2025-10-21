@@ -6,10 +6,11 @@ Handles lead data storage and retrieval using Google Sheets API
 
 import logging
 import time
-from typing import Any, Dict, List, Optional
 from datetime import datetime
+from typing import Any, Dict, List, Optional
 
 import requests
+
 from credentials_manager import CredentialsManager
 
 
@@ -48,7 +49,7 @@ class GoogleSheetsService:
             except requests.exceptions.RequestException as e:
                 self.logger.warning(f"Request attempt {attempt + 1} failed: {e}")
                 if attempt < self.max_retries - 1:
-                    time.sleep(self.retry_delay * (2 ** attempt))
+                    time.sleep(self.retry_delay * (2**attempt))
                 else:
                     self.logger.error(f"All retry attempts failed: {e}")
                     raise
@@ -67,7 +68,9 @@ class GoogleSheetsService:
             self.logger.error(f"Failed to get spreadsheet info: {e}")
             raise
 
-    def get_sheet_data(self, sheet_name: str, range_name: str = None) -> List[List[str]]:
+    def get_sheet_data(
+        self, sheet_name: str, range_name: str = None
+    ) -> List[List[str]]:
         """Get data from a specific sheet"""
         try:
             spreadsheet_id = self.settings["spreadsheet_id"]
@@ -99,24 +102,21 @@ class GoogleSheetsService:
             row_data = self._format_lead_row(lead_data)
 
             # Append to the sheet
-            endpoint = f"{spreadsheet_id}/values/{self.settings['leads_sheet_name']}:append"
+            endpoint = (
+                f"{spreadsheet_id}/values/{self.settings['leads_sheet_name']}:append"
+            )
             params = {
                 "valueInputOption": "USER_ENTERED",
                 "insertDataOption": "INSERT_ROWS",
             }
 
-            body = {
-                "values": [row_data]
-            }
+            body = {"values": [row_data]}
 
-            response = self._make_request(
-                "POST", 
-                endpoint, 
-                params=params, 
-                json=body
+            response = self._make_request("POST", endpoint, params=params, json=body)
+
+            self.logger.info(
+                f"Successfully added lead for {lead_data.get('company', 'Unknown')}"
             )
-
-            self.logger.info(f"Successfully added lead for {lead_data.get('company', 'Unknown')}")
             return response
 
         except Exception as e:
@@ -154,7 +154,9 @@ class GoogleSheetsService:
 
         return row
 
-    def update_lead_status(self, row_index: int, status: str, notes: str = "") -> Dict[str, Any]:
+    def update_lead_status(
+        self, row_index: int, status: str, notes: str = ""
+    ) -> Dict[str, Any]:
         """Update the status of a lead by row index"""
         try:
             spreadsheet_id = self.settings["spreadsheet_id"]
@@ -162,11 +164,15 @@ class GoogleSheetsService:
                 raise ValueError("Spreadsheet ID not configured")
 
             # Update status and notes columns
-            status_col = self.settings["headers"].index("Status") + 1  # Convert to 1-based
+            status_col = (
+                self.settings["headers"].index("Status") + 1
+            )  # Convert to 1-based
             notes_col = self.settings["headers"].index("Notes") + 1
 
             # Update status
-            status_range = f"{self.settings['leads_sheet_name']}!{chr(64 + status_col)}{row_index}"
+            status_range = (
+                f"{self.settings['leads_sheet_name']}!{chr(64 + status_col)}{row_index}"
+            )
             endpoint = f"{spreadsheet_id}/values/{status_range}"
             body = {"values": [[status]]}
             self._make_request("PUT", endpoint, json=body)
@@ -231,13 +237,13 @@ class GoogleSheetsService:
             # Add the sheet
             endpoint = f"{spreadsheet_id}:batchUpdate"
             body = {
-                "requests": [{
-                    "addSheet": {
-                        "properties": {
-                            "title": self.settings["leads_sheet_name"]
+                "requests": [
+                    {
+                        "addSheet": {
+                            "properties": {"title": self.settings["leads_sheet_name"]}
                         }
                     }
-                }]
+                ]
             }
 
             response = self._make_request("POST", endpoint, json=body)
@@ -277,7 +283,7 @@ class GoogleSheetsService:
                 "total_leads": total_leads,
                 "status_counts": status_counts,
                 "signal_type_counts": signal_counts,
-                "last_updated": datetime.now().isoformat()
+                "last_updated": datetime.now().isoformat(),
             }
 
         except Exception as e:

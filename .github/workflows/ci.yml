@@ -2,16 +2,16 @@ name: CI/CD Pipeline
 
 on:
   push:
-    branches: [ main, develop ]
+    branches: [main, develop]
   pull_request:
-    branches: [ main, develop ]
+    branches: [main, develop]
   schedule:
     # Run security checks daily at 2 AM UTC
-    - cron: '0 2 * * *'
+    - cron: "0 2 * * *"
 
 env:
-  PYTHON_VERSION: '3.8'
-  POETRY_VERSION: '1.6.1'
+  PYTHON_VERSION: "3.8"
+  POETRY_VERSION: "1.6.1"
 
 jobs:
   # Code Quality Checks
@@ -93,8 +93,8 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: ['3.8', '3.9', '3.10', '3.11']
-    
+        python-version: ["3.8", "3.9", "3.10", "3.11"]
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -147,7 +147,7 @@ jobs:
     name: Integration Tests
     runs-on: ubuntu-latest
     needs: [quality, security, test]
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -178,7 +178,7 @@ jobs:
           python -c "from src.credentials_manager import CredentialsManager; print('Credentials manager OK')"
           python -c "from src.llm_service import LLMService; print('LLM service OK')"
           python -c "from src.google_sheets_service import GoogleSheetsService; print('Google Sheets service OK')"
-          
+
           # Test import of main modules
           python -c "import outbound; print('Main module OK')"
           python -c "import weekly_scheduler; print('Scheduler module OK')"
@@ -199,7 +199,7 @@ jobs:
     name: Performance Tests
     runs-on: ubuntu-latest
     needs: [quality, security, test]
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -219,7 +219,7 @@ jobs:
         run: |
           # Test import performance
           time python -c "import outbound; import weekly_scheduler; import gmail_email_system"
-          
+
           # Test memory usage
           python -c "
           import psutil
@@ -234,7 +234,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: [quality, security, test, integration]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -268,7 +268,7 @@ jobs:
     needs: [build]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     environment: production
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -284,7 +284,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: [quality, security, test, integration, performance]
     if: failure()
-    
+
     steps:
       - name: Notify failure
         run: |

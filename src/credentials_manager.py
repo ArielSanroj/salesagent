@@ -64,7 +64,9 @@ class CredentialsManager:
         """Get SerpAPI configuration with credentials"""
         api_key = os.getenv("SERPAPI_KEY")
         if not api_key:
-            self.logger.warning("SERPAPI_KEY not set, SerpAPI features will be disabled")
+            self.logger.warning(
+                "SERPAPI_KEY not set, SerpAPI features will be disabled"
+            )
             return None
 
         config = self.secure_config["api"]["serpapi"].copy()
@@ -75,7 +77,9 @@ class CredentialsManager:
         """Get Hunter.io configuration with credentials"""
         api_key = os.getenv("HUNTER_KEY")
         if not api_key:
-            self.logger.warning("HUNTER_KEY not set, Hunter.io features will be disabled")
+            self.logger.warning(
+                "HUNTER_KEY not set, Hunter.io features will be disabled"
+            )
             return None
 
         config = self.secure_config["api"]["hunter"].copy()
@@ -97,7 +101,9 @@ class CredentialsManager:
         """Get Google Sheets configuration with credentials"""
         api_key = os.getenv("GOOGLE_SHEETS_API_KEY")
         if not api_key:
-            self.logger.warning("GOOGLE_SHEETS_API_KEY not set, Google Sheets features will be disabled")
+            self.logger.warning(
+                "GOOGLE_SHEETS_API_KEY not set, Google Sheets features will be disabled"
+            )
             return None
 
         config = self.secure_config["api"]["google_sheets"].copy()
@@ -119,7 +125,9 @@ class CredentialsManager:
         """Get BrightData proxy configuration with credentials"""
         password = os.getenv("BRIGHTDATA_PASSWORD")
         if not password:
-            self.logger.warning("BRIGHTDATA_PASSWORD not set, proxy features will be disabled")
+            self.logger.warning(
+                "BRIGHTDATA_PASSWORD not set, proxy features will be disabled"
+            )
             return None
 
         return {
@@ -153,7 +161,9 @@ class CredentialsManager:
         token_file = os.getenv("GMAIL_TOKEN_FILE", "gmail_token.json")
 
         if not os.path.exists(credentials_file):
-            raise FileNotFoundError(f"Gmail credentials file not found: {credentials_file}")
+            raise FileNotFoundError(
+                f"Gmail credentials file not found: {credentials_file}"
+            )
 
         return {
             "credentials_file": credentials_file,

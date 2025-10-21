@@ -25,7 +25,9 @@ class TestEmailSystem(unittest.TestCase):
 
         # Create temporary directory for test files
         self.temp_dir = tempfile.mkdtemp()
-        self.test_credentials_file = os.path.join(self.temp_dir, "test_credentials.json")
+        self.test_credentials_file = os.path.join(
+            self.temp_dir, "test_credentials.json"
+        )
         self.test_token_file = os.path.join(self.temp_dir, "test_token.json")
 
     def tearDown(self):

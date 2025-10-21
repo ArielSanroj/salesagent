@@ -7,42 +7,42 @@ templates:
     subject_template: "Streamlining Your HR Tech Evaluation Process - {company_name}"
     opening_template: |
       Hi {person_name},
-      
+
       I noticed {company_name} is currently evaluating HR technology solutions. Having worked with similar companies during their evaluation process, I understand the challenges of finding the right fit.
     body_template: |
       At Clio, we've helped over 200 companies streamline their HR operations through our integrated platform. Our clients typically see:
-      
+
       • 40% reduction in administrative tasks
-      • 60% faster onboarding processes  
+      • 60% faster onboarding processes
       • 95% employee satisfaction scores
-      
+
       What sets us apart is our focus on seamless integration with existing systems and our dedicated support team that works alongside your HR team throughout implementation.
     closing_template: |
       I'd love to share how we've helped companies like {company_name} navigate similar evaluations. Would you be available for a brief 15-minute call this week?
-      
+
       Best regards,
       Ariel
       CEO & Founder, Clio
       ariel@cliocircle.com
 
-  # New Leadership Template  
+  # New Leadership Template
   new_leadership:
     subject_template: "Supporting Your First 90 Days as {person_title} - {company_name}"
     opening_template: |
       Hi {person_name},
-      
+
       Congratulations on your new role as {person_title} at {company_name}! The first 90 days in a new leadership position are crucial for setting the foundation for success.
     body_template: |
       I've worked with many new HR leaders who face similar challenges in their first quarter:
-      
+
       • Establishing credibility with the team
       • Understanding existing processes and pain points
       • Implementing quick wins to demonstrate value
-      
+
       At Clio, we specialize in helping new HR leaders accelerate their impact through our comprehensive platform that provides immediate visibility into team performance and engagement.
     closing_template: |
       I'd be happy to share some insights on how other new HR leaders have successfully navigated their first 90 days. Would you be interested in a brief conversation?
-      
+
       Best regards,
       Ariel
       CEO & Founder, Clio
@@ -53,21 +53,21 @@ templates:
     subject_template: "Your Recent HR Tech Content Caught My Attention - {company_name}"
     opening_template: |
       Hi {person_name},
-      
+
       I came across {company_name}'s recent content on {content_topic} and was impressed by your insights on HR technology challenges.
     body_template: |
       It's refreshing to see companies that truly understand the complexities of modern HR operations. Based on your content, it seems like {company_name} is actively exploring solutions to improve employee experience and operational efficiency.
-      
+
       At Clio, we've built our platform specifically to address the challenges you've highlighted:
-      
+
       • Seamless integration with existing systems
       • Real-time analytics and reporting
       • Mobile-first design for remote teams
-      
+
       Our clients often tell us that our solution feels like it was built specifically for their needs.
     closing_template: |
       I'd love to share how we've helped similar companies address the specific challenges you've outlined. Would you be interested in a brief discussion?
-      
+
       Best regards,
       Ariel
       CEO & Founder, Clio
@@ -78,19 +78,19 @@ templates:
     subject_template: "Smooth HR System Transition for {company_name}"
     opening_template: |
       Hi {person_name},
-      
+
       I understand {company_name} is transitioning to a new HR technology stack. System changes can be challenging, but they're also an opportunity to significantly improve your HR operations.
     body_template: |
       Having supported numerous companies through similar transitions, I know the key to success is choosing a platform that:
-      
+
       • Integrates seamlessly with your existing tools
       • Provides comprehensive data migration support
       • Offers dedicated implementation assistance
-      
+
       At Clio, we've developed a proven migration process that minimizes disruption and ensures your team is productive from day one. Our implementation team works closely with your IT and HR teams to ensure a smooth transition.
     closing_template: |
       I'd be happy to share our migration playbook and discuss how we can support {company_name}'s transition. Would you be available for a brief call?
-      
+
       Best regards,
       Ariel
       CEO & Founder, Clio
@@ -101,19 +101,19 @@ templates:
     subject_template: "Scaling HR Operations for {company_name}'s Growth"
     opening_template: |
       Hi {person_name},
-      
+
       Congratulations on {company_name}'s recent growth! Scaling HR operations to support rapid expansion is one of the most critical challenges growing companies face.
     body_template: |
       As companies scale, HR teams often struggle with:
-      
+
       • Maintaining consistent processes across teams
       • Onboarding new employees efficiently
       • Managing performance and engagement at scale
-      
+
       At Clio, we've helped over 200 companies scale their HR operations through our platform designed specifically for growing organizations. Our clients have successfully managed teams from 50 to 5,000+ employees.
     closing_template: |
       I'd love to share how we've helped similar companies navigate their growth phase. Would you be interested in a brief conversation about scaling strategies?
-      
+
       Best regards,
       Ariel
       CEO & Founder, Clio
@@ -124,19 +124,19 @@ templates:
     subject_template: "Supporting Your HR Team During {company_name}'s Transition"
     opening_template: |
       Hi {person_name},
-      
+
       I understand {company_name} is going through some organizational changes. These transitions can be particularly challenging for HR teams who need to support both departing and remaining employees.
     body_template: |
       During organizational transitions, HR teams often need:
-      
+
       • Tools to manage the transition process efficiently
       • Support for remaining employees' morale and engagement
       • Streamlined processes for future hiring when ready
-      
+
       At Clio, we've developed specific features to help HR teams navigate these challenging periods, including transition management tools and employee engagement tracking.
     closing_template: |
       I'd be happy to share how we've supported other HR teams during similar transitions. Would you be interested in a brief discussion?
-      
+
       Best regards,
       Ariel
       CEO & Founder, Clio

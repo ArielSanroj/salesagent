@@ -28,7 +28,7 @@ An advanced B2B lead generation system that automatically identifies and process
 
 ### Signal Types
 1. **HR Tech Evaluations** - Companies evaluating HR technology
-2. **New Leadership ≤90 days** - Recent HR leadership appointments  
+2. **New Leadership ≤90 days** - Recent HR leadership appointments
 3. **High-Intent Website/Content** - Companies showing HR tech interest
 4. **Tech Stack Change** - Companies changing HR systems
 5. **Expansion** - Growing companies needing HR solutions
@@ -199,8 +199,8 @@ pytest tests/test_credentials_manager.py -v
 
 ### Data Flow
 ```
-Signal ID → Query Generation → News Search → Content Scraping → 
-LLM Analysis → Opportunity Extraction → Quality Filtering → 
+Signal ID → Query Generation → News Search → Content Scraping →
+LLM Analysis → Opportunity Extraction → Quality Filtering →
 Email Generation → Storage → Reporting
 ```
 
