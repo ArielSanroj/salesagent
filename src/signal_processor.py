@@ -228,24 +228,44 @@ Email:"""
                 return None
 
             # Extract company and person using LLM
+            logger.info(f"🏢 Extracting company name from: {url}")
             company = self.extract_company_name(content)
-            person = self.extract_person_name(content)
-
-            if not company:
+            if company:
+                logger.info(f"✅ Company found: {company}")
+            else:
+                logger.warning(f"❌ No company found in: {url}")
                 return None
+
+            logger.info(f"👤 Extracting person name from: {url}")
+            person = self.extract_person_name(content)
+            if person and person != "Unknown":
+                logger.info(f"✅ Person found: {person}")
+            else:
+                logger.info(f"ℹ️ No specific person found, using 'Unknown'")
 
             # Calculate relevance score
             keywords = DEFAULT_KEYWORDS
             relevance_score = self.calculate_relevance_score(content, keywords)
+            logger.info(f"📊 Relevance score: {relevance_score:.2f}")
 
             # Apply quality thresholds
             if relevance_score < 0.7:  # Use constant from constants.py
+                logger.warning(
+                    f"❌ Relevance score {relevance_score:.2f} below threshold 0.7"
+                )
                 return None
 
             # Find email
             email = "Manual validation needed"
             if person and person != "Unknown":
+                logger.info(f"📧 Finding email for {person} at {company}")
                 email = self.extract_email(company, person)
+                if email != "Manual validation needed":
+                    logger.info(f"✅ Email found: {email}")
+                else:
+                    logger.info(f"ℹ️ Email not found, manual validation needed")
+            else:
+                logger.info(f"ℹ️ No person found, manual validation needed for email")
 
             # Create opportunity
             opportunity = Opportunity(
@@ -263,7 +283,7 @@ Email:"""
             )
 
             logger.info(
-                f"Processed opportunity: {company} - {person} (Score: {relevance_score:.2f})"
+                f"🎯 OPPORTUNITY CREATED: {company} - {person} (Email: {email}, Score: {relevance_score:.2f})"
             )
             return opportunity
 
@@ -275,34 +295,48 @@ Email:"""
         self, signal_id: int, max_results: int = 10
     ) -> List[Opportunity]:
         """Process a specific signal type and return opportunities"""
-        logger.info(
-            f"Processing signal {signal_id}: {SIGNAL_TYPES.get(signal_id, 'Unknown')}"
-        )
+        signal_name = SIGNAL_TYPES.get(signal_id, "Unknown")
+        logger.info(f"🔍 BUYER SIGNAL ACTIVATED: {signal_id} - {signal_name}")
 
         # Generate queries for this signal
         queries = self.generate_queries(signal_id)
+        logger.info(f"📝 Generated {len(queries)} search queries for {signal_name}")
 
         # Search for articles
         all_articles = []
         if self.search_service:
-            for query in queries:
+            for i, query in enumerate(queries):
+                logger.info(f"🔎 Searching query {i+1}/{len(queries)}: '{query}'")
                 articles = self.search_service.search_articles(
                     query, max_results // len(queries)
                 )
+                logger.info(f"📰 Found {len(articles)} articles for query: '{query}'")
                 all_articles.extend(articles)
 
+                # Log article URLs
+                for article in articles:
+                    logger.info(f"📄 Article URL: {article.get('url', 'No URL')}")
+
         if not all_articles:
-            logger.warning(f"No articles found for signal {signal_id}")
+            logger.warning(f"❌ No articles found for signal {signal_id}")
             return []
+
+        logger.info(f"📊 Total articles found: {len(all_articles)}")
 
         # Process articles into opportunities
         opportunities = []
-        for article in all_articles:
+        for i, article in enumerate(all_articles):
+            logger.info(
+                f"🔍 Processing article {i+1}/{len(all_articles)}: {article.get('title', 'No title')[:50]}..."
+            )
             opportunity = self.process_article(article, signal_id)
             if opportunity:
                 opportunities.append(opportunity)
+                logger.info(
+                    f"✅ OPPORTUNITY FOUND: {opportunity.company} - {opportunity.person} (Email: {opportunity.email})"
+                )
 
         logger.info(
-            f"Signal {signal_id} completed: {len(opportunities)} opportunities found"
+            f"🎯 Signal {signal_id} ({signal_name}) completed: {len(opportunities)} opportunities found"
         )
         return opportunities

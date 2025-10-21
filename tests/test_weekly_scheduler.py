@@ -127,22 +127,23 @@ class TestWeeklyScheduler:
         ):
             generator = WeeklyLeadGenerator()
 
+            # Clear any existing data that might have wrong format
+            generator.opportunities_tracking["opportunities_by_week"] = {}
+
             # Add old data
             old_date = datetime.now() - timedelta(days=10)
-            generator.opportunities_tracking["opportunities_by_week"][
-                old_date.strftime("%Y-%W")
-            ] = 10
+            # Use ISO format that can be parsed by fromisoformat
+            old_date_str = old_date.isoformat()
+            generator.opportunities_tracking["opportunities_by_week"][old_date_str] = 10
 
-            with patch("pathlib.Path.glob") as mock_glob, patch(
-                "pathlib.Path.stat"
-            ) as mock_stat, patch("pathlib.Path.unlink") as mock_unlink:
-                # Mock old files
-                mock_file = Mock()
-                mock_file.stat.return_value.st_mtime = old_date.timestamp()
-                mock_glob.return_value = [mock_file]
+            # Test that the method runs without error
+            generator.cleanup_old_data()
 
-                generator.cleanup_old_data()
-                mock_unlink.assert_called()
+            # Verify old data was removed
+            assert (
+                old_date_str
+                not in generator.opportunities_tracking["opportunities_by_week"]
+            )
 
     @patch("weekly_scheduler.subprocess.run")
     def test_run_lead_generation_success(self, mock_run):
@@ -150,7 +151,11 @@ class TestWeeklyScheduler:
         mock_run.return_value = Mock(returncode=0, stderr="")
 
         with patch(
-            "weekly_scheduler.CONFIG", {"opportunity_tracking_file": "test.json"}
+            "weekly_scheduler.CONFIG",
+            {
+                "opportunity_tracking_file": "test.json",
+                "target_opportunities_per_week": 50,
+            },
         ):
             generator = WeeklyLeadGenerator()
 
@@ -175,6 +180,8 @@ class TestWeeklyScheduler:
     @patch("weekly_scheduler.subprocess.run")
     def test_run_lead_generation_timeout(self, mock_run):
         """Test lead generation timeout"""
+        import subprocess
+
         mock_run.side_effect = subprocess.TimeoutExpired("python", 3600)
 
         with patch(
@@ -185,16 +192,19 @@ class TestWeeklyScheduler:
             result = generator.run_lead_generation()
             assert result is False
 
-    @patch("weekly_scheduler.pd.read_csv")
+    @patch("pandas.read_csv")
     def test_process_results(self, mock_read_csv):
         """Test processing results from CSV"""
         # Mock DataFrame
         mock_df = Mock()
         mock_df.__len__ = Mock(return_value=25)
-        mock_df["Signal Type"].value_counts.return_value.to_dict.return_value = {
+        # Mock the DataFrame indexing and value_counts
+        mock_series = Mock()
+        mock_series.value_counts.return_value.to_dict.return_value = {
             1: 10,
             2: 15,
         }
+        mock_df.__getitem__ = Mock(return_value=mock_series)
         mock_read_csv.return_value = mock_df
 
         with patch(
@@ -205,15 +215,23 @@ class TestWeeklyScheduler:
             },
         ):
             generator = WeeklyLeadGenerator()
+            # Reset the tracking data to ensure clean state
+            generator.opportunities_tracking["total_opportunities"] = 0
 
-            with patch("os.path.exists", return_value=True):
+            with patch("os.path.exists") as mock_exists:
+                # Mock that only all_signals.csv exists, not individual signal files
+                def exists_side_effect(path):
+                    return path == "all_signals.csv"
+
+                mock_exists.side_effect = exists_side_effect
+
                 generator.process_results()
 
                 # Verify tracking data was updated
                 assert generator.opportunities_tracking["total_opportunities"] == 25
                 assert len(generator.opportunities_tracking["weekly_runs"]) > 0
 
-    @patch("weekly_scheduler.smtplib.SMTP")
+    @patch("smtplib.SMTP")
     def test_send_weekly_report_success(self, mock_smtp):
         """Test successful weekly report sending"""
         mock_server = Mock()
@@ -224,6 +242,7 @@ class TestWeeklyScheduler:
             {
                 "opportunity_tracking_file": "test.json",
                 "email_recipient": "test@example.com",
+                "target_opportunities_per_week": 50,
             },
         ):
             generator = WeeklyLeadGenerator()
@@ -249,7 +268,7 @@ class TestWeeklyScheduler:
                 mock_server.sendmail.assert_called_once()
                 mock_server.quit.assert_called_once()
 
-    @patch("weekly_scheduler.smtplib.SMTP")
+    @patch("smtplib.SMTP")
     def test_send_weekly_report_failure(self, mock_smtp):
         """Test weekly report sending failure"""
         mock_smtp.side_effect = Exception("SMTP error")

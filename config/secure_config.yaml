@@ -39,6 +39,14 @@ api:
     max_retries: 3
     retry_delay: 2
 
+# Email Configuration
+email_config:
+  smtp_server: "smtp.gmail.com"
+  smtp_port: 587
+  sender_email: "ariel@cliocircle.com"
+  sender_password: "" # Will be loaded from EMAIL_PASSWORD environment variable
+  recipient_email: "ariel@cliocircle.com"
+
 # Search Configuration
 search:
   keywords:
