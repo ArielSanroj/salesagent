@@ -225,7 +225,7 @@ class GmailEmailSystem:
             message = MIMEText(email_content["body"])
             message["to"] = email_content["to"]
             message["subject"] = email_content["subject"]
-            message["from"] = f"Ariel <ariel@cliocircle.com>"
+            message["from"] = "Ariel <ariel@cliocircle.com>"
 
             # Encode message
             raw_message = base64.urlsafe_b64encode(message.as_bytes()).decode()
