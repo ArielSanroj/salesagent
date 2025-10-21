@@ -129,7 +129,7 @@ def initialize_services() -> bool:
 
 def create_session() -> requests.Session:
     """Create HTTP session with retry strategy"""
-session = requests.Session()
+    session = requests.Session()
 
     # Retry strategy
     retry_strategy = Retry(
@@ -138,8 +138,8 @@ session = requests.Session()
         status_forcelist=[429, 500, 502, 503, 504],
     )
     adapter = HTTPAdapter(max_retries=retry_strategy)
-session.mount("http://", adapter)
-session.mount("https://", adapter)
+    session.mount("http://", adapter)
+    session.mount("https://", adapter)
 
     return session
 
@@ -248,7 +248,7 @@ Company name:"""
         response = llm_service.invoke_sync(prompt, "company_extraction")
         if response and response != "Service temporarily unavailable":
             return response.strip()
-            except Exception as e:
+    except Exception as e:
         logger.warning(f"Error extracting company name: {e}")
 
     return None
@@ -568,7 +568,7 @@ def process_opportunity(
         person = extract_person_name(content)
 
         if not company:
-        return None
+            return None
 
         # Calculate relevance score
         keywords = CONFIG["search"]["keywords"]
@@ -605,9 +605,9 @@ def process_opportunity(
         )
         return opportunity
 
-        except Exception as e:
+    except Exception as e:
         logger.error(f"Error processing opportunity: {e}")
-                return None
+        return None
 
 
 def generate_queries(signal_id: int) -> List[str]:
