@@ -1,0 +1,116 @@
+# Secure Configuration for HR Tech Lead Generation System
+# This file contains non-sensitive configuration that can be versioned
+
+application:
+  name: "HR Tech Lead Generation"
+  version: "2.0.0"
+  environment: "production"
+
+# API Configuration (keys loaded from environment variables)
+api:
+  ollama:
+    model: "llama3.1:8b"
+    base_url: "http://localhost:11434"
+    timeout: 30
+    max_retries: 3
+    retry_delay: 2
+  
+  serpapi:
+    timeout: 30
+    max_retries: 3
+  
+  hunter:
+    timeout: 30
+    max_retries: 3
+  
+  apify:
+    timeout: 60
+    max_retries: 2
+  
+  newsdata:
+    timeout: 30
+    max_retries: 3
+    retry_delay: 2
+  
+  google_sheets:
+    api_key: ""  # Will be loaded from GOOGLE_SHEETS_API_KEY environment variable
+    base_url: "https://sheets.googleapis.com/v4/spreadsheets"
+    timeout: 30
+    max_retries: 3
+    retry_delay: 2
+
+# Search Configuration
+search:
+  keywords: 
+    - "reducing burnout"
+    - "improve productivity" 
+    - "HR tech"
+    - "CHRO"
+    - "employee engagement"
+  
+  date_range:
+    start: "2025-01-01"
+    signal2_start: "2025-06-25"
+    end: "2025-09-23"
+  
+  sources:
+    - "site:nytimes.com"
+    - "site:wsj.com"
+    - "site:forbes.com"
+    - "site:hrdive.com"
+    - "site:harvardbusinessreview.org"
+    - "site:techcrunch.com"
+    - "site:reuters.com"
+    - "site:ft.com"
+    - "site:shrm.org"
+    - "site:peoplematters.in"
+
+# Quality Thresholds
+quality:
+  min_relevance_score: 0.7
+  min_company_bonus: 0.2
+  min_person_bonus: 0.3
+  min_hr_title_bonus: 0.2
+
+# Weekly Scheduler Configuration
+scheduler:
+  target_opportunities_per_week: 50
+  signals_per_run: 6
+  results_per_signal: 10
+  run_day: "sunday"
+  run_time: "20:00"
+  timezone: "America/New_York"
+  backup_days: ["monday", "tuesday"]
+  data_retention_days: 90
+
+# Search Optimization
+search_optimization:
+  weekly_num_results: 30
+  weekly_max_workers: 5
+  weekly_timeout: 3600
+  rate_limit_calls: 1
+  rate_limit_period: 8
+
+# Google Sheets Configuration
+google_sheets:
+  spreadsheet_id: ""  # Will be set via environment variable
+  leads_sheet_name: "Leads"
+  leads_range: "A:Z"
+  headers:
+    - "Date"
+    - "Company"
+    - "Person"
+    - "Email"
+    - "Title"
+    - "Relevance Score"
+    - "Signal Type"
+    - "Source URL"
+    - "Status"
+    - "Notes"
+
+# Monitoring
+monitoring:
+  log_level: "INFO"
+  log_file: "weekly_scheduler.log"
+  tracking_file: "opportunities_tracking.json"
+  backup_enabled: true

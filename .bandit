@@ -1,0 +1,20 @@
+# Bandit configuration for HR Tech Lead Generation System
+
+[bandit]
+# Skip specific tests
+skips = B101,B601
+
+# Exclude directories
+exclude_dirs = tests,venv,.venv,__pycache__,.pytest_cache,htmlcov
+
+# Include only specific severity levels
+severity = medium,high
+
+# Include only specific confidence levels
+confidence = medium,high
+
+# Output format
+format = json
+
+# Output file
+output = bandit-report.json
