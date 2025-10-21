@@ -16,7 +16,6 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from urllib.parse import urlparse
 from urllib.robotparser import RobotFileParser
-from requests.exceptions import HTTPError
 
 import pandas as pd
 import requests
@@ -28,13 +27,16 @@ from langchain_ollama import ChatOllama
 from pyhunter import PyHunter
 from ratelimit import limits, sleep_and_retry
 from requests.adapters import HTTPAdapter
+from requests.exceptions import HTTPError
 from urllib3.util.retry import Retry
 
 NEWSDATA_LATEST_URL = "https://newsdata.io/api/1/latest"
 
 # Setup logging
 logging.basicConfig(
-    level=logging.INFO, filename="scrape.log", format="%(asctime)s - %(levelname)s - %(message)s"
+    level=logging.INFO,
+    filename="scrape.log",
+    format="%(asctime)s - %(levelname)s - %(message)s",
 )
 
 # Load environment variables
@@ -61,7 +63,11 @@ CONFIG = {
         "CHRO",
         "employee engagement",
     ],
-    "date_range": {"start": "2025-01-01", "signal2_start": "2025-06-25", "end": "2025-09-23"},
+    "date_range": {
+        "start": "2025-01-01",
+        "signal2_start": "2025-06-25",
+        "end": "2025-09-23",
+    },
     "sources": [
         "nytimes.com",
         "wsj.com",
@@ -91,7 +97,11 @@ NEWS_API_CALL_LIMIT = int(os.getenv("NEWSDATA_API_CALL_LIMIT", "10"))
 
 
 session = requests.Session()
-adapter = HTTPAdapter(max_retries=Retry(total=3, backoff_factor=1, status_forcelist=[429, 500, 502, 503, 504]))
+adapter = HTTPAdapter(
+    max_retries=Retry(
+        total=3, backoff_factor=1, status_forcelist=[429, 500, 502, 503, 504]
+    )
+)
 session.mount("http://", adapter)
 session.mount("https://", adapter)
 
@@ -148,7 +158,9 @@ def can_scrape(url):
     }
 
     try:
-        response = rate_limited_request(session.get, robots_url, headers=headers, timeout=10)
+        response = rate_limited_request(
+            session.get, robots_url, headers=headers, timeout=10
+        )
         if response.status_code == 200:
             content = response.content.decode("utf-8", errors="ignore")
             rp = RobotFileParser()
@@ -156,10 +168,14 @@ def can_scrape(url):
             allowed = rp.can_fetch("*", url)
             logging.info(f"Checked robots.txt for {url}: Allowed={allowed}")
             return allowed
-        logging.warning(f"Failed to fetch robots.txt for {url}: Status {response.status_code}")
+        logging.warning(
+            f"Failed to fetch robots.txt for {url}: Status {response.status_code}"
+        )
         return True
     except Exception as e:
-        logging.warning(f"Failed to check robots.txt for {url}: {e}, assuming scrape allowed")
+        logging.warning(
+            f"Failed to check robots.txt for {url}: {e}, assuming scrape allowed"
+        )
         return True
 
 
@@ -177,13 +193,12 @@ def retry_tool(tool_func, max_attempts=3):
                 )
                 if attempt < max_attempts - 1:
                     time.sleep(2**attempt)
-        logging.error(f"{tool_func.__name__} failed after {max_attempts} attempts: {last_err}")
+        logging.error(
+            f"{tool_func.__name__} failed after {max_attempts} attempts: {last_err}"
+        )
         return None
 
     return wrapper
-
-
-
 
 
 # Hunter.io email finder
@@ -200,7 +215,9 @@ def hunter_email_finder(company, first_name, last_name):
     domain = f"{company.lower().replace(' ', '')}.com"
     hunter = PyHunter(CONFIG["hunter_key"])
     try:
-        result = hunter.email_finder(domain=domain, first_name=first_name, last_name=last_name)
+        result = hunter.email_finder(
+            domain=domain, first_name=first_name, last_name=last_name
+        )
         if isinstance(result, dict):
             email = result.get("email")
             if email:
@@ -236,7 +253,11 @@ Email:""",
     )
     try:
         response = llm.invoke(prompt.format(company=company, person=person))
-        email = response.content.strip() if hasattr(response, "content") else response.strip()
+        email = (
+            response.content.strip()
+            if hasattr(response, "content")
+            else response.strip()
+        )
 
         # Clean up the response to extract just the email
         if "@" in email:
@@ -277,11 +298,11 @@ def _fetch_newsdata_page(endpoint, params):
 
     try:
         response = rate_limited_request(session.get, endpoint, params=params)
-        
+
         # Handle rate limiting
         if response.status_code == 429:
             raise HTTPError("NewsData.io rate limit exceeded")
-        
+
         # Handle other HTTP errors
         if response.status_code == 401:
             raise HTTPError("NewsData.io API key invalid or expired")
@@ -289,17 +310,17 @@ def _fetch_newsdata_page(endpoint, params):
             raise HTTPError("NewsData.io API access forbidden")
         elif response.status_code == 422:
             raise HTTPError("NewsData.io invalid request parameters")
-        
+
         response.raise_for_status()
         payload = response.json()
-        
+
         # Check API response status
         if payload.get("status") != "success":
             error_msg = payload.get("message", "NewsData.io API error")
             raise HTTPError(f"NewsData.io API error: {error_msg}")
-        
+
         return payload
-        
+
     except requests.exceptions.RequestException as e:
         raise HTTPError(f"NewsData.io request failed: {e}")
     except ValueError as e:
@@ -312,17 +333,17 @@ def _fetch_newsdata_page(endpoint, params):
 def fetch_news_articles(query, num_results=10, domains=None):
     """
     Fetch news articles from NewsData.io API with improved implementation
-    
+
     Args:
         query: Search query string
         num_results: Maximum number of results to return (1-100)
-    
+
     Returns:
         List of article dictionaries with standardized format
     """
     # Validate and limit num_results
     num_results = min(max(num_results, 1), 100)
-    
+
     # Check API key
     key = CONFIG.get("newsdata_key")
     if not key:
@@ -331,7 +352,7 @@ def fetch_news_articles(query, num_results=10, domains=None):
 
     aggregated = []
     endpoint = NEWSDATA_LATEST_URL
-    
+
     # Build base parameters
     params = {
         "apikey": key,
@@ -356,7 +377,7 @@ def fetch_news_articles(query, num_results=10, domains=None):
         if len(end_date) > 10:  # If it includes time, truncate
             end_date = end_date[:10]
         params["to_date"] = end_date
-    
+
     page_token = None
     max_pages = 5  # Prevent infinite loops
     page_count = 0
@@ -384,7 +405,11 @@ def fetch_news_articles(query, num_results=10, domains=None):
 
                 if domains:
                     parsed_domain = urlparse(url).netloc.lower()
-                    stripped_domain = parsed_domain[4:] if parsed_domain.startswith("www.") else parsed_domain
+                    stripped_domain = (
+                        parsed_domain[4:]
+                        if parsed_domain.startswith("www.")
+                        else parsed_domain
+                    )
                     if stripped_domain not in domains:
                         continue
 
@@ -424,8 +449,6 @@ def fetch_news_articles(query, num_results=10, domains=None):
     return aggregated[:num_results]
 
 
-
-
 # LLM-based dynamic parsing
 @retry_tool
 def parse_site_dynamic(url, instructions, raw_text=None, metadata=None):
@@ -434,7 +457,9 @@ def parse_site_dynamic(url, instructions, raw_text=None, metadata=None):
         return None
 
     # Try direct scraping first
-    headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/91.0.4472.124"}
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/91.0.4472.124"
+    }
     text = ""
     metadata = metadata or {}
 
@@ -442,9 +467,13 @@ def parse_site_dynamic(url, instructions, raw_text=None, metadata=None):
         if raw_text and isinstance(raw_text, str) and raw_text.strip():
             text = raw_text.strip()
         else:
-            response = rate_limited_request(session.get, url, headers=headers, timeout=20)
+            response = rate_limited_request(
+                session.get, url, headers=headers, timeout=20
+            )
             if response.status_code != 200:
-                logging.warning(f"Request failed for {url}: status {response.status_code}")
+                logging.warning(
+                    f"Request failed for {url}: status {response.status_code}"
+                )
                 return None
 
             if url.lower().endswith(".pdf"):
@@ -487,7 +516,9 @@ Return ONLY this JSON format:
 
     for attempt in range(3):
         try:
-            llm_resp = llm.invoke(prompt.format(text=text[:5000], keywords=CONFIG["keywords"]))
+            llm_resp = llm.invoke(
+                prompt.format(text=text[:5000], keywords=CONFIG["keywords"])
+            )
             break
         except Exception as e:
             logging.warning(f"LLM attempt {attempt + 1}/3 failed: {e}")
@@ -523,7 +554,9 @@ Return ONLY this JSON format:
         if date_pattern:
             data["date"] = date_pattern.group(1)
         else:
-            data["date"] = metadata.get("publishedAt") or datetime.utcnow().strftime("%Y-%m-%d")
+            data["date"] = metadata.get("publishedAt") or datetime.utcnow().strftime(
+                "%Y-%m-%d"
+            )
     if not data.get("company"):
         data["company"] = metadata.get("source", "")
 
@@ -542,7 +575,11 @@ Return ONLY this JSON format:
 
     # Bonus points for having company and person
     company_bonus = 0.2 if company and company.strip() else 0
-    person_bonus = 0.3 if person and person.strip() and person.lower() not in ["unknown", ""] else 0
+    person_bonus = (
+        0.3
+        if person and person.strip() and person.lower() not in ["unknown", ""]
+        else 0
+    )
 
     # Bonus for HR/CHRO titles
     hr_title_bonus = (
@@ -555,7 +592,9 @@ Return ONLY this JSON format:
     )
 
     # Base score + bonuses
-    relevance_score = 0.4 + (keyword_score * 0.4) + company_bonus + person_bonus + hr_title_bonus
+    relevance_score = (
+        0.4 + (keyword_score * 0.4) + company_bonus + person_bonus + hr_title_bonus
+    )
     data.update({"relevance_score": min(1.0, relevance_score)})
 
     # Safely handle person name splitting
@@ -595,9 +634,9 @@ def send_email_report(report_content, csv_file_path=None):
         msg = MIMEMultipart()
         msg["From"] = email_config["sender_email"]
         msg["To"] = email_config["recipient_email"]
-        msg["Subject"] = (
-            f"HR Tech Lead Generation Report - {datetime.now().strftime('%Y-%m-%d %H:%M')}"
-        )
+        msg[
+            "Subject"
+        ] = f"HR Tech Lead Generation Report - {datetime.now().strftime('%Y-%m-%d %H:%M')}"
 
         # Add report content to email body
         body = f"""
@@ -631,10 +670,14 @@ This report was automatically generated by your HR Tech Lead Generation System.
         server.login(email_config["sender_email"], email_config["sender_password"])
 
         text = msg.as_string()
-        server.sendmail(email_config["sender_email"], email_config["recipient_email"], text)
+        server.sendmail(
+            email_config["sender_email"], email_config["recipient_email"], text
+        )
         server.quit()
 
-        logging.info(f"Email report sent successfully to {email_config['recipient_email']}")
+        logging.info(
+            f"Email report sent successfully to {email_config['recipient_email']}"
+        )
         return True
 
     except Exception as e:
@@ -659,7 +702,9 @@ def create_gmail_drafts(csv_file_path="all_signals.csv"):
         drafts = email_system.create_weekly_email_drafts(csv_file_path)
 
         if drafts:
-            logging.info(f"Successfully created {len(drafts)} personalized email drafts")
+            logging.info(
+                f"Successfully created {len(drafts)} personalized email drafts"
+            )
             return True
         else:
             logging.warning("No email drafts were created")
@@ -711,7 +756,9 @@ def add_result(signal_type, data):
     if not data:
         return
     if data.get("relevance_score", 0) < 0.6:
-        logging.info(f"Skipping low relevance result: score={data.get('relevance_score', 0)}")
+        logging.info(
+            f"Skipping low relevance result: score={data.get('relevance_score', 0)}"
+        )
         return
     result = {
         "Signal Type": signal_type,
@@ -719,7 +766,8 @@ def add_result(signal_type, data):
         "Person": data.get("person") or "",
         "Action Details": data.get("action") or f"{signal_type} outreach",
         "Post or News": data.get("title") or "",
-        "Contact Information or URL": data.get("contact_url") or "Manual validation needed",
+        "Contact Information or URL": data.get("contact_url")
+        or "Manual validation needed",
         "Personalized Email Draft": data.get("email_draft") or "",
         "relevance_score": float(data.get("relevance_score") or 0.0),
         "date": data.get("date") or datetime.utcnow().strftime("%Y-%m-%d"),
@@ -843,8 +891,16 @@ def generate_query(signal_id):
         2: ["new chro", "chief people officer", "vp people"],
         3: ["workplace wellness", "employee wellbeing platform", "hr software"],
         4: ["hcm migration", "workday implementation", "hr tech upgrade"],
-        5: ["hr tech funding", "employee experience funding", "people analytics investment"],
-        6: ["hiring hr director", "people operations hiring", "talent acquisition role"],
+        5: [
+            "hr tech funding",
+            "employee experience funding",
+            "people analytics investment",
+        ],
+        6: [
+            "hiring hr director",
+            "people operations hiring",
+            "talent acquisition role",
+        ],
     }
 
     topics = base_topics.get(signal_id, base_topics[1])
@@ -896,7 +952,9 @@ def generate_query(signal_id):
         if len(queries) >= total_limit:
             break
 
-    logging.info(f"Generated NewsData queries for signal {signal_id}: {queries[:total_limit]}")
+    logging.info(
+        f"Generated NewsData queries for signal {signal_id}: {queries[:total_limit]}"
+    )
     return queries[:total_limit]
 
 
@@ -936,7 +994,9 @@ def run_signal(signal_id):
             if len(aggregated_search_results) >= num_results:
                 break
             if NEWS_API_CALL_COUNT >= NEWS_API_CALL_LIMIT:
-                logging.warning("NewsData.io daily call limit reached; stopping further queries")
+                logging.warning(
+                    "NewsData.io daily call limit reached; stopping further queries"
+                )
                 break
 
             per_query_limit = min(5, num_results - len(aggregated_search_results))
@@ -968,7 +1028,9 @@ def run_signal(signal_id):
                     break
 
         if not aggregated_search_results:
-            logging.warning(f"No search results for signal {signal_id} across {len(query_list)} queries")
+            logging.warning(
+                f"No search results for signal {signal_id} across {len(query_list)} queries"
+            )
             return
 
         parsed_data = []
@@ -996,7 +1058,9 @@ def run_signal(signal_id):
                     data = future.result()
                     if data:
                         data["action"] = signal_names[signal_id]
-                        data["email_draft"] = personalize_email(EMAIL_TEMPLATES[signal_id], data)
+                        data["email_draft"] = personalize_email(
+                            EMAIL_TEMPLATES[signal_id], data
+                        )
                         parsed_data.append(data)
                         add_result(signal_names[signal_id], data)
                 except Exception as e:
@@ -1009,7 +1073,9 @@ def run_signal(signal_id):
     except Exception as e:
         logging.error(f"Signal {signal_id} failed: {e}")
     finally:
-        logging.info(f"NewsData.io calls used: {NEWS_API_CALL_COUNT}/{NEWS_API_CALL_LIMIT}")
+        logging.info(
+            f"NewsData.io calls used: {NEWS_API_CALL_COUNT}/{NEWS_API_CALL_LIMIT}"
+        )
 
 
 # Test signal
@@ -1018,7 +1084,9 @@ def test_signal(signal_id):
     run_signal(signal_id)
     df = filter_results()
     save_results(df, filename=f"test_signal_{signal_id}.csv")
-    logging.info(f"Test for signal {signal_id} complete. Check test_signal_{signal_id}.csv")
+    logging.info(
+        f"Test for signal {signal_id} complete. Check test_signal_{signal_id}.csv"
+    )
 
 
 # Filter results
@@ -1043,7 +1111,9 @@ def filter_results(min_score=0.7, max_days_signal2=90):
         (now - df["date_obj"]) <= timedelta(days=max_days_signal2)
     )
     df = df[m2 | (df["Signal Type"] != "New leadership ≤90 days")]
-    df = df[df["relevance_score"] >= min_score].drop_duplicates(subset=["Company", "Person"])
+    df = df[df["relevance_score"] >= min_score].drop_duplicates(
+        subset=["Company", "Person"]
+    )
     return df.drop(columns=["date_obj"], errors="ignore")
 
 
@@ -1058,7 +1128,9 @@ def save_results(df, filename="all_signals.csv"):
             filename.startswith("test_signal_")
             and not os.getenv("WEEKLY_RUN", "false").lower() == "true"
         ):
-            send_email_report("", filename)  # Send CSV attachment without report content
+            send_email_report(
+                "", filename
+            )  # Send CSV attachment without report content
     else:
         logging.warning(f"No results to save for {filename}")
 
@@ -1073,7 +1145,9 @@ def run_full_workflow(config_file=None):
             executor.map(run_signal, range(1, 7))
         df = filter_results()
         save_results(df)
-        logging.info("Workflow complete. Check all_signals.csv and synthesized_report.md")
+        logging.info(
+            "Workflow complete. Check all_signals.csv and synthesized_report.md"
+        )
     except Exception as e:
         logging.error(f"Workflow failed: {str(e)}", exc_info=True)
 
@@ -1089,7 +1163,9 @@ if __name__ == "__main__":
         target_opportunities = int(os.getenv("TARGET_OPPORTUNITIES", "50"))
 
         if is_weekly_run:
-            logging.info(f"Starting weekly run - Target: {target_opportunities} opportunities")
+            logging.info(
+                f"Starting weekly run - Target: {target_opportunities} opportunities"
+            )
 
             # Run all signals for weekly production
             for signal_id in range(1, 7):

@@ -5,7 +5,7 @@
 max-line-length = 88
 
 # Ignore specific errors
-ignore = 
+ignore =
     # E203: whitespace before ':' (conflicts with black)
     E203,
     # W503: line break before binary operator (conflicts with black)
@@ -16,7 +16,7 @@ ignore =
     F401
 
 # Exclude directories
-exclude = 
+exclude =
     .git,
     __pycache__,
     .venv,
@@ -48,7 +48,7 @@ per-file-ignores =
 max-complexity = 10
 
 # Select specific checks
-select = 
+select =
     E,  # pycodestyle errors
     W,  # pycodestyle warnings
     F,  # pyflakes

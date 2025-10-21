@@ -14,26 +14,26 @@ api:
     timeout: 30
     max_retries: 3
     retry_delay: 2
-  
+
   serpapi:
     timeout: 30
     max_retries: 3
-  
+
   hunter:
     timeout: 30
     max_retries: 3
-  
+
   apify:
     timeout: 60
     max_retries: 2
-  
+
   newsdata:
     timeout: 30
     max_retries: 3
     retry_delay: 2
-  
+
   google_sheets:
-    api_key: ""  # Will be loaded from GOOGLE_SHEETS_API_KEY environment variable
+    api_key: "" # Will be loaded from GOOGLE_SHEETS_API_KEY environment variable
     base_url: "https://sheets.googleapis.com/v4/spreadsheets"
     timeout: 30
     max_retries: 3
@@ -41,18 +41,18 @@ api:
 
 # Search Configuration
 search:
-  keywords: 
+  keywords:
     - "reducing burnout"
-    - "improve productivity" 
+    - "improve productivity"
     - "HR tech"
     - "CHRO"
     - "employee engagement"
-  
+
   date_range:
     start: "2025-01-01"
     signal2_start: "2025-06-25"
     end: "2025-09-23"
-  
+
   sources:
     - "site:nytimes.com"
     - "site:wsj.com"
@@ -93,7 +93,7 @@ search_optimization:
 
 # Google Sheets Configuration
 google_sheets:
-  spreadsheet_id: ""  # Will be set via environment variable
+  spreadsheet_id: "" # Will be set via environment variable
   leads_sheet_name: "Leads"
   leads_range: "A:Z"
   headers:

@@ -25,21 +25,21 @@ MIN_HR_TITLE_BONUS = 0.2
 # Signal Types
 SIGNAL_TYPES = {
     1: "HR tech evaluations",
-    2: "New leadership ≤90 days", 
+    2: "New leadership ≤90 days",
     3: "High-intent website/content",
     4: "Tech stack change",
     5: "Expansion",
-    6: "Hiring/downsizing"
+    6: "Hiring/downsizing",
 }
 
 # Email Template Mapping
 EMAIL_TEMPLATE_MAPPING = {
     1: "hr_tech_evaluations",
-    2: "new_leadership", 
+    2: "new_leadership",
     3: "high_intent_content",
     4: "tech_stack_change",
     5: "expansion",
-    6: "hiring_downsizing"
+    6: "hiring_downsizing",
 }
 
 # Search Keywords
@@ -48,7 +48,7 @@ DEFAULT_KEYWORDS = [
     "improve productivity",
     "HR tech",
     "CHRO",
-    "employee engagement"
+    "employee engagement",
 ]
 
 # News Sources
@@ -62,7 +62,7 @@ DEFAULT_SOURCES = [
     "reuters.com",
     "ft.com",
     "shrm.org",
-    "peoplematters.in"
+    "peoplematters.in",
 ]
 
 # File Paths
@@ -111,7 +111,7 @@ ERROR_MESSAGES = {
     "SCRAPING_FAILED": "Failed to scrape content from URL",
     "API_LIMIT_REACHED": "API call limit reached",
     "NETWORK_ERROR": "Network error occurred",
-    "VALIDATION_ERROR": "Data validation failed"
+    "VALIDATION_ERROR": "Data validation failed",
 }
 
 # Success Messages
@@ -120,5 +120,5 @@ SUCCESS_MESSAGES = {
     "OPPORTUNITY_PROCESSED": "Opportunity processed successfully",
     "EMAIL_SENT": "Email sent successfully",
     "DRAFT_CREATED": "Email draft created successfully",
-    "DATA_SAVED": "Data saved successfully"
+    "DATA_SAVED": "Data saved successfully",
 }

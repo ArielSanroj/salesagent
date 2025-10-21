@@ -55,7 +55,8 @@ class TestCredentialsManager(unittest.TestCase):
         shutil.rmtree(self.temp_dir)
 
     @patch.dict(
-        os.environ, {"OLLAMA_API_KEY": "test-ollama-key", "EMAIL_PASSWORD": "test-email-password"}
+        os.environ,
+        {"OLLAMA_API_KEY": "test-ollama-key", "EMAIL_PASSWORD": "test-email-password"},
     )
     def test_initialization_success(self):
         """Test successful credentials manager initialization"""
@@ -71,7 +72,8 @@ class TestCredentialsManager(unittest.TestCase):
             CredentialsManager("nonexistent_dir")
 
     @patch.dict(
-        os.environ, {"OLLAMA_API_KEY": "test-ollama-key", "EMAIL_PASSWORD": "test-email-password"}
+        os.environ,
+        {"OLLAMA_API_KEY": "test-ollama-key", "EMAIL_PASSWORD": "test-email-password"},
     )
     def test_get_ollama_config(self):
         """Test Ollama configuration retrieval"""
@@ -135,7 +137,8 @@ class TestCredentialsManager(unittest.TestCase):
             manager.get_email_config()
 
     @patch.dict(
-        os.environ, {"OLLAMA_API_KEY": "test-ollama-key", "EMAIL_PASSWORD": "test-email-password"}
+        os.environ,
+        {"OLLAMA_API_KEY": "test-ollama-key", "EMAIL_PASSWORD": "test-email-password"},
     )
     def test_validate_required_credentials_success(self):
         """Test successful credential validation"""

@@ -144,7 +144,11 @@ class WeeklyLeadGenerator:
             env["TARGET_OPPORTUNITIES"] = str(CONFIG["target_opportunities_per_week"])
 
             result = subprocess.run(
-                cmd, capture_output=True, text=True, timeout=3600, env=env  # 1 hour timeout
+                cmd,
+                capture_output=True,
+                text=True,
+                timeout=3600,
+                env=env,  # 1 hour timeout
             )
 
             if result.returncode == 0:
@@ -181,7 +185,9 @@ class WeeklyLeadGenerator:
                 # Count by signal type
                 signal_counts = df["Signal Type"].value_counts().to_dict()
 
-                logging.info(f"Found {total_opportunities} opportunities in all_signals.csv")
+                logging.info(
+                    f"Found {total_opportunities} opportunities in all_signals.csv"
+                )
 
             except Exception as e:
                 logging.error(f"Failed to process all_signals.csv: {e}")
@@ -203,18 +209,23 @@ class WeeklyLeadGenerator:
             "date": datetime.now().isoformat(),
             "total_opportunities": total_opportunities,
             "signal_counts": signal_counts,
-            "target_met": total_opportunities >= CONFIG["target_opportunities_per_week"],
+            "target_met": total_opportunities
+            >= CONFIG["target_opportunities_per_week"],
         }
 
         self.opportunities_tracking["total_opportunities"] += total_opportunities
-        self.opportunities_tracking["opportunities_by_week"][current_week] = total_opportunities
+        self.opportunities_tracking["opportunities_by_week"][
+            current_week
+        ] = total_opportunities
         self.opportunities_tracking["last_run"] = datetime.now().isoformat()
 
         # Save tracking data
         self.save_tracking_data()
 
         # Log results
-        logging.info(f"Weekly run completed: {total_opportunities} opportunities generated")
+        logging.info(
+            f"Weekly run completed: {total_opportunities} opportunities generated"
+        )
         logging.info(f"Signal breakdown: {signal_counts}")
 
         if total_opportunities >= CONFIG["target_opportunities_per_week"]:
@@ -284,11 +295,15 @@ Next Run: Next Sunday at 8:00 PM Eastern Time
 
             # Get email configuration from credentials manager
             email_config = self.credentials_manager.get_email_config()
-            
-            server = smtplib.SMTP(email_config["smtp_server"], email_config["smtp_port"])
+
+            server = smtplib.SMTP(
+                email_config["smtp_server"], email_config["smtp_port"]
+            )
             server.starttls()
             server.login(email_config["sender_email"], email_config["sender_password"])
-            server.sendmail("ariel@cliocircle.com", CONFIG["email_recipient"], msg.as_string())
+            server.sendmail(
+                "ariel@cliocircle.com", CONFIG["email_recipient"], msg.as_string()
+            )
             server.quit()
 
             logging.info("Weekly report sent successfully")
@@ -360,7 +375,9 @@ def main():
         logging.info(f"Weekly scheduler started (GMT-5)")
         logging.info(f"Schedule: Every Sunday at 8:00 PM Eastern Time")
         logging.info(f"Next run: {next_run.strftime('%Y-%m-%d %H:%M:%S %Z')}")
-        logging.info(f"Target: {CONFIG['target_opportunities_per_week']} opportunities per week")
+        logging.info(
+            f"Target: {CONFIG['target_opportunities_per_week']} opportunities per week"
+        )
         logging.info(f"Email reports sent to: {CONFIG['email_recipient']}")
 
         # Keep the scheduler running

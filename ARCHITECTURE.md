@@ -186,15 +186,15 @@ The system processes 6 different signal types:
 
 ### 1. Signal Processing Flow
 ```
-Signal ID → Query Generation → News Search → Content Scraping → 
-LLM Analysis → Opportunity Extraction → Quality Filtering → 
+Signal ID → Query Generation → News Search → Content Scraping →
+LLM Analysis → Opportunity Extraction → Quality Filtering →
 Email Generation → Storage
 ```
 
 ### 2. Weekly Execution Flow
 ```
-Scheduler → Service Initialization → Signal Processing (1-6) → 
-Data Aggregation → Filtering & Deduplication → CSV Export → 
+Scheduler → Service Initialization → Signal Processing (1-6) →
+Data Aggregation → Filtering & Deduplication → CSV Export →
 Email Report → Gmail Drafts → Performance Tracking
 ```
 

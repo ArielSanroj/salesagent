@@ -184,7 +184,9 @@ class LLMService:
                 if response and hasattr(response, "content"):
                     content = response.content.strip()
                     self.logger.info(f"LLM request successful (attempt {attempt + 1})")
-                    return LLMResponse(content=content, success=True, retry_count=attempt)
+                    return LLMResponse(
+                        content=content, success=True, retry_count=attempt
+                    )
                 else:
                     raise ValueError("Invalid response from LLM")
 
@@ -228,7 +230,9 @@ class LLMService:
     def invoke_async(self, prompt: str, request_type: str = "general") -> str:
         """Invoke LLM asynchronously (non-blocking)"""
         if self.status == LLMStatus.FAILED:
-            return self.fallback_responses.get(request_type, "Service temporarily unavailable")
+            return self.fallback_responses.get(
+                request_type, "Service temporarily unavailable"
+            )
 
         # Start worker thread if not running
         self.start_worker_thread()
@@ -245,15 +249,21 @@ class LLMService:
 
         except queue.Full:
             self.logger.warning("Request queue full, using fallback")
-            return self.fallback_responses.get(request_type, "Service temporarily unavailable")
+            return self.fallback_responses.get(
+                request_type, "Service temporarily unavailable"
+            )
         except queue.Empty:
             self.logger.warning("Response timeout, using fallback")
-            return self.fallback_responses.get(request_type, "Service temporarily unavailable")
+            return self.fallback_responses.get(
+                request_type, "Service temporarily unavailable"
+            )
 
     def invoke_sync(self, prompt: str, request_type: str = "general") -> str:
         """Invoke LLM synchronously (blocking)"""
         if self.status == LLMStatus.FAILED:
-            return self.fallback_responses.get(request_type, "Service temporarily unavailable")
+            return self.fallback_responses.get(
+                request_type, "Service temporarily unavailable"
+            )
 
         try:
             response = self.llm_client.invoke(prompt)
@@ -265,7 +275,9 @@ class LLMService:
         except Exception as e:
             self.logger.error(f"LLM sync call failed: {e}")
             self.status = LLMStatus.DEGRADED
-            return self.fallback_responses.get(request_type, "Service temporarily unavailable")
+            return self.fallback_responses.get(
+                request_type, "Service temporarily unavailable"
+            )
 
     def get_status(self) -> Dict[str, Any]:
         """Get current service status"""
@@ -273,7 +285,9 @@ class LLMService:
             "status": self.status.value,
             "retry_count": self.retry_count,
             "queue_size": self.request_queue.qsize(),
-            "worker_alive": self.worker_thread.is_alive() if self.worker_thread else False,
+            "worker_alive": self.worker_thread.is_alive()
+            if self.worker_thread
+            else False,
         }
 
     def health_check(self) -> bool:

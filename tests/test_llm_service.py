@@ -109,7 +109,8 @@ class TestLLMService(unittest.TestCase):
 
         self.assertEqual(fallbacks["email_finder"], "Manual validation needed")
         self.assertEqual(
-            fallbacks["content_parser"], "Content parsing failed - manual review required"
+            fallbacks["content_parser"],
+            "Content parsing failed - manual review required",
         )
 
 
