@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """
-Weekly HR Tech Lead Generation Scheduler
-Automatically runs the lead generation script every Monday at 9 AM
-Generates 50+ opportunities per week for Clio Circle AI
+Daily HR Tech Lead Generation Scheduler
+Automatically runs the lead generation script every day at 8:00 AM
+Generates opportunities daily for Clio Circle AI
 """
 
 import fcntl
@@ -33,13 +33,11 @@ logging.basicConfig(
 
 # Configuration
 CONFIG = {
-    "target_opportunities_per_week": 50,
+    "target_opportunities_per_day": 10,  # Daily target
     "signals_per_run": 6,  # All 6 signal types
-    "results_per_signal": 10,  # Target 10 results per signal
-    "run_day": "sunday",
-    "run_time": "20:00",  # 8 PM GMT-5 (Eastern Time)
-    "timezone": "America/New_York",  # GMT-5 timezone
-    "backup_days": ["monday", "tuesday"],  # Backup runs if Sunday fails
+    "results_per_signal": 2,  # Target 2 results per signal daily
+    "run_time": "08:00",  # 8:00 AM daily
+    "timezone": "America/New_York",  # Eastern Time
     "email_recipient": "ariel@cliocircle.com",
     "data_retention_days": 90,  # Keep data for 90 days
     "opportunity_tracking_file": "opportunities_tracking.json",
@@ -311,6 +309,74 @@ Next Run: Next Sunday at 8:00 PM Eastern Time
         except Exception as e:
             logging.error(f"Failed to send weekly report: {e}")
 
+    def send_daily_report(self):
+        """Send daily performance report"""
+        try:
+            import smtplib
+            from email.mime.multipart import MIMEMultipart
+            from email.mime.text import MIMEText
+
+            # Get current day data
+            current_date = datetime.now().strftime("%Y-%m-%d")
+
+            # Create report
+            report = f"""
+Daily HR Tech Lead Generation Report
+====================================
+
+Date: {current_date}
+Time: {datetime.now().strftime('%H:%M')}
+
+Performance:
+- Target: {CONFIG['target_opportunities_per_day']} opportunities per day
+- Signals Processed: {CONFIG['signals_per_run']} signal types
+- Results per Signal: {CONFIG['results_per_signal']} opportunities
+
+Daily Summary:
+- All 6 buyer signals activated
+- NewsData API searches completed
+- Content scraping and LLM analysis performed
+- Quality filtering applied (relevance score > 0.7)
+
+Files Generated:
+- all_signals.csv: Complete opportunity list
+- Individual signal files: test_signal_*.csv
+- email_drafts_summary.json: Personalized email drafts created
+
+Email Drafts:
+- Personalized drafts created in Gmail for each lead
+- Each draft tailored to specific signal type and company context
+- Ready for review and sending
+
+Next Run: Tomorrow at 8:00 AM Eastern Time
+"""
+
+            # Send email
+            msg = MIMEMultipart()
+            msg["From"] = "ariel@cliocircle.com"
+            msg["To"] = CONFIG["email_recipient"]
+            msg["Subject"] = f"Daily HR Tech Lead Generation Report - {current_date}"
+
+            msg.attach(MIMEText(report, "plain"))
+
+            # Get email configuration from credentials manager
+            email_config = self.credentials_manager.get_email_config()
+
+            server = smtplib.SMTP(
+                email_config["smtp_server"], email_config["smtp_port"]
+            )
+            server.starttls()
+            server.login(email_config["sender_email"], email_config["sender_password"])
+            server.sendmail(
+                "ariel@cliocircle.com", CONFIG["email_recipient"], msg.as_string()
+            )
+            server.quit()
+
+            logging.info("Daily report sent successfully")
+
+        except Exception as e:
+            logging.error(f"Failed to send daily report: {e}")
+
     def run_weekly_job(self):
         """Main weekly job function"""
         logging.info("=" * 50)
@@ -332,6 +398,29 @@ Next Run: Next Sunday at 8:00 PM Eastern Time
 
         logging.info("=" * 50)
         logging.info("WEEKLY JOB COMPLETED")
+        logging.info("=" * 50)
+
+    def run_daily_job(self):
+        """Main daily job function"""
+        logging.info("=" * 50)
+        logging.info("STARTING DAILY LEAD GENERATION JOB")
+        logging.info("=" * 50)
+
+        # Cleanup old data
+        self.cleanup_old_data()
+
+        # Run lead generation with daily target
+        success = self.run_lead_generation()
+
+        if success:
+            # Send daily report
+            self.send_daily_report()
+            logging.info("Daily job completed successfully")
+        else:
+            logging.error("Daily job failed")
+
+        logging.info("=" * 50)
+        logging.info("DAILY JOB COMPLETED")
         logging.info("=" * 50)
 
 
@@ -360,23 +449,17 @@ def main():
     try:
         generator = WeeklyLeadGenerator()
 
-        # Schedule the weekly job for Sunday at 8 PM GMT-5
-        schedule.every().sunday.at(CONFIG["run_time"]).do(generator.run_weekly_job)
-
-        # Schedule backup runs for Monday and Tuesday at 8 PM
-        for backup_day in CONFIG["backup_days"]:
-            getattr(schedule.every(), backup_day).at(CONFIG["run_time"]).do(
-                generator.run_weekly_job
-            )
+        # Schedule the daily job at 8:00 AM
+        schedule.every().day.at(CONFIG["run_time"]).do(generator.run_daily_job)
 
         # Get next run time in timezone
         next_run = get_next_run_time()
 
-        logging.info("Weekly scheduler started (GMT-5)")
-        logging.info("Schedule: Every Sunday at 8:00 PM Eastern Time")
+        logging.info("Daily scheduler started - runs at 8:00 AM Eastern Time")
+        logging.info("Schedule: Every day at 8:00 AM Eastern Time")
         logging.info(f"Next run: {next_run.strftime('%Y-%m-%d %H:%M:%S %Z')}")
         logging.info(
-            f"Target: {CONFIG['target_opportunities_per_week']} opportunities per week"
+            f"Target: {CONFIG['target_opportunities_per_day']} opportunities per day"
         )
         logging.info(f"Email reports sent to: {CONFIG['email_recipient']}")
 

@@ -46,6 +46,7 @@ from constants import (
     NEWS_API_CALL_LIMIT,
     NEWS_API_TIMEOUT,
     NEWSDATA_LATEST_URL,
+    SIGNAL_TYPES,
     TARGET_OPPORTUNITIES_PER_WEEK,
 )
 from credentials_manager import CredentialsManager
@@ -87,8 +88,6 @@ LOCK_FILE = "outbound.lock"
 # Constants
 NEWS_API_CALL_COUNT = 0
 NEWS_API_CALL_LIMIT = int(os.getenv("NEWSDATA_API_CALL_LIMIT", "50"))
-
-
 
 
 def initialize_services() -> bool:
@@ -397,7 +396,9 @@ def _handle_news_api_response(response) -> bool:
     return True
 
 
-def _process_news_articles(articles: List[Dict], domains: Optional[List[str]], num_results: int) -> List[Dict]:
+def _process_news_articles(
+    articles: List[Dict], domains: Optional[List[str]], num_results: int
+) -> List[Dict]:
     """Process articles and filter by domains"""
     processed = []
 
@@ -412,9 +413,7 @@ def _process_news_articles(articles: List[Dict], domains: Optional[List[str]], n
         if domains:
             parsed_domain = urlparse(url).netloc.lower()
             stripped_domain = (
-                parsed_domain[4:]
-                if parsed_domain.startswith("www.")
-                else parsed_domain
+                parsed_domain[4:] if parsed_domain.startswith("www.") else parsed_domain
             )
             if stripped_domain not in domains:
                 continue
@@ -554,12 +553,12 @@ def process_opportunity(
         date = article.get("publishedAt", "")
 
         if not title or not url:
-                return None
+            return None
 
         # Scrape content
         scraped_content = scrape_url_content(url)
         if not scraped_content:
-                return None
+            return None
 
         content = scraped_content["content"]
 

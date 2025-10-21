@@ -40,7 +40,7 @@ class TestLLMService(unittest.TestCase):
         """Clean up after tests"""
         self.llm_service.stop_worker_thread()
 
-    @patch("langchain_ollama.ChatOllama")
+    @patch("src.llm_service.ChatOllama")
     def test_initialization_success(self, mock_chat_ollama):
         """Test successful LLM service initialization"""
         # Mock successful LLM client
@@ -57,7 +57,7 @@ class TestLLMService(unittest.TestCase):
         self.assertEqual(service.status, LLMStatus.HEALTHY)
         self.assertEqual(service.retry_count, 0)
 
-    @patch("langchain_ollama.ChatOllama")
+    @patch("src.llm_service.ChatOllama")
     def test_initialization_failure(self, mock_chat_ollama):
         """Test LLM service initialization failure"""
         # Mock failing LLM client

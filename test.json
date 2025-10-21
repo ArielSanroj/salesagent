@@ -1,0 +1,18 @@
+{
+  "weekly_runs": {
+    "2025-42": {
+      "date": "2025-10-21T10:32:02.320940",
+      "total_opportunities": 25,
+      "signal_counts": {
+        "1": 10,
+        "2": 15
+      },
+      "target_met": false
+    }
+  },
+  "total_opportunities": 25,
+  "opportunities_by_week": {
+    "2025-42": 25
+  },
+  "last_run": "2025-10-21T10:32:02.320955"
+}

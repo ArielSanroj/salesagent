@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.cliocircle.daily-leadgen</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>/usr/bin/python3</string>
+        <string>/Users/arielsanroj/PycharmProjects/outboundai/start_daily_scheduler.py</string>
+    </array>
+
+    <key>WorkingDirectory</key>
+    <string>/Users/arielsanroj/PycharmProjects/outboundai</string>
+
+    <key>RunAtLoad</key>
+    <true/>
+
+    <key>KeepAlive</key>
+    <true/>
+
+    <key>StandardOutPath</key>
+    <string>/Users/arielsanroj/PycharmProjects/outboundai/daily_scheduler.log</string>
+
+    <key>StandardErrorPath</key>
+    <string>/Users/arielsanroj/PycharmProjects/outboundai/daily_scheduler_error.log</string>
+
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>NEWSDATA_API_KEY</key>
+        <string>pub_3125b0dbc6454c3b892c27756202571a</string>
+        <key>EMAIL_PASSWORD</key>
+        <string>test-password</string>
+        <key>TARGET_OPPORTUNITIES</key>
+        <string>10</string>
+        <key>WEEKLY_RUN</key>
+        <string>false</string>
+    </dict>
+</dict>
+</plist>

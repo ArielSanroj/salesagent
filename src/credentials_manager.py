@@ -121,6 +121,19 @@ class CredentialsManager:
         settings["spreadsheet_id"] = spreadsheet_id
         return settings
 
+    def get_newsdata_config(self) -> Dict[str, Any]:
+        """Get NewsData configuration with credentials"""
+        api_key = os.getenv("NEWSDATA_API_KEY")
+        if not api_key:
+            self.logger.warning(
+                "NEWSDATA_API_KEY not set, NewsData features will be disabled"
+            )
+            return None
+
+        config = self.secure_config["api"]["newsdata"].copy()
+        config["api_key"] = api_key
+        return config
+
     def get_brightdata_config(self) -> Dict[str, Any]:
         """Get BrightData proxy configuration with credentials"""
         password = os.getenv("BRIGHTDATA_PASSWORD")
@@ -212,6 +225,7 @@ class CredentialsManager:
             "serpapi": self.get_serpapi_config(),
             "hunter": self.get_hunter_config(),
             "apify": self.get_apify_config(),
+            "newsdata": self.get_newsdata_config(),
             "brightdata": self.get_brightdata_config(),
             "email": self.get_email_config(),
             "gmail": self.get_gmail_config(),

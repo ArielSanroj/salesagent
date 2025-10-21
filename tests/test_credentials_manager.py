@@ -41,8 +41,16 @@ class TestCredentialsManager(unittest.TestCase):
                 },
                 "serpapi": {"timeout": 30, "max_retries": 3},
                 "hunter": {"timeout": 30, "max_retries": 3},
+                "apify": {"timeout": 60, "max_retries": 2},
+                "nvidia": {"timeout": 30, "max_retries": 3},
+                "google_sheets": {"timeout": 30, "max_retries": 3},
             },
             "email_config": {"smtp_server": "smtp.test.com", "smtp_port": 587},
+            "google_sheets": {"spreadsheet_id": "test-id"},
+            "search": {"keywords": ["test"]},
+            "quality": {"min_relevance_score": 0.7},
+            "scheduler": {"target_opportunities_per_week": 50},
+            "monitoring": {"log_level": "INFO"},
         }
 
         with open(self.config_file, "w") as f:
@@ -84,7 +92,7 @@ class TestCredentialsManager(unittest.TestCase):
         self.assertEqual(config["model"], "test-model")
         self.assertEqual(config["base_url"], "https://test.api.com/v1")
 
-    @patch.dict(os.environ, {})
+    @patch.dict(os.environ, {}, clear=True)
     def test_get_ollama_config_missing_key(self):
         """Test Ollama configuration with missing API key"""
         manager = CredentialsManager(str(self.config_dir))
@@ -168,7 +176,7 @@ class TestCredentialsManager(unittest.TestCase):
         config = manager.get_all_config()
 
         # Verify all sections are present
-        self.assertIn("nvidia", config)
+        self.assertIn("ollama", config)
         self.assertIn("serpapi", config)
         self.assertIn("hunter", config)
         self.assertIn("apify", config)

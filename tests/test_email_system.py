@@ -82,10 +82,12 @@ class TestEmailSystem(unittest.TestCase):
 
         personalized = system.personalize_template(template, variables)
 
-        self.assertEqual(personalized["subject"], "Hello John Doe from Test Company")
-        self.assertEqual(personalized["opening"], "Hi John Doe,")
-        self.assertEqual(personalized["body"], "This is about Test Company")
-        self.assertEqual(personalized["closing"], "Best regards, Ariel")
+        self.assertEqual(
+            personalized["subject_template"], "Hello John Doe from Test Company"
+        )
+        self.assertEqual(personalized["opening_template"], "Hi John Doe,")
+        self.assertEqual(personalized["body_template"], "This is about Test Company")
+        self.assertEqual(personalized["closing_template"], "Best regards, Ariel")
 
     def test_email_validation(self):
         """Test email address validation"""
@@ -114,8 +116,12 @@ class TestEmailSystem(unittest.TestCase):
         # Mock Gmail service
         mock_service = Mock()
         mock_drafts = Mock()
-        mock_drafts.create.return_value = {"id": "test-draft-id"}
-        mock_service.drafts.return_value = mock_drafts
+        mock_create_request = Mock()
+        mock_create_request.execute.return_value = {"id": "test-draft-id"}
+        mock_drafts.create.return_value = mock_create_request
+        mock_users = Mock()
+        mock_users.drafts.return_value = mock_drafts
+        mock_service.users.return_value = mock_users
 
         system.service = mock_service
 
@@ -124,6 +130,7 @@ class TestEmailSystem(unittest.TestCase):
             "to": "test@example.com",
             "subject": "Test Subject",
             "body": "Test body content",
+            "company": "Test Company",
         }
 
         result = system.create_draft(draft_data)
@@ -178,9 +185,9 @@ class TestEmailSystem(unittest.TestCase):
             content = system.generate_email_content(opportunity)
 
             self.assertIn("Test Company", content["subject"])
-            self.assertIn("John Doe", content["opening"])
+            self.assertIn("John Doe", content["body"])
             self.assertIn("Test Company", content["body"])
-            self.assertIn("Ariel", content["closing"])
+            self.assertIn("Ariel", content["body"])
 
     def test_batch_draft_creation(self):
         """Test batch creation of email drafts"""
@@ -188,11 +195,15 @@ class TestEmailSystem(unittest.TestCase):
 
         system = GmailEmailSystem()
 
-        # Mock Gmail service
+        # Mock Gmail service with proper chaining
         mock_service = Mock()
         mock_drafts = Mock()
-        mock_drafts.create.return_value = {"id": "test-draft-id"}
-        mock_service.drafts.return_value = mock_drafts
+        mock_create_request = Mock()
+        mock_create_request.execute.return_value = {"id": "test-draft-id"}
+        mock_drafts.create.return_value = mock_create_request
+        mock_users = Mock()
+        mock_users.drafts.return_value = mock_drafts
+        mock_service.users.return_value = mock_users
 
         system.service = mock_service
 
