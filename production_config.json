@@ -1,0 +1,38 @@
+{
+  "weekly_scheduler": {
+    "target_opportunities_per_week": 50,
+    "signals_per_run": 6,
+    "results_per_signal": 10,
+    "run_day": "sunday",
+    "run_time": "20:00",
+    "timezone": "America/New_York",
+    "backup_days": ["monday", "tuesday"],
+    "email_recipient": "ariel@cliocircle.com",
+    "data_retention_days": 90
+  },
+  "search_optimization": {
+    "weekly_num_results": 30,
+    "weekly_max_workers": 5,
+    "weekly_timeout": 3600,
+    "rate_limit_calls": 1,
+    "rate_limit_period": 8
+  },
+  "quality_thresholds": {
+    "min_relevance_score": 0.7,
+    "min_company_bonus": 0.2,
+    "min_person_bonus": 0.3,
+    "min_hr_title_bonus": 0.2
+  },
+  "email_templates": {
+    "sender_email": "ariel@cliocircle.com",
+    "sender_password": "buub szjm ktei imjv",
+    "smtp_server": "smtp.gmail.com",
+    "smtp_port": 587
+  },
+  "monitoring": {
+    "log_level": "INFO",
+    "log_file": "weekly_scheduler.log",
+    "tracking_file": "opportunities_tracking.json",
+    "backup_enabled": true
+  }
+}

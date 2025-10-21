@@ -1,0 +1,292 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+  schedule:
+    # Run security checks daily at 2 AM UTC
+    - cron: '0 2 * * *'
+
+env:
+  PYTHON_VERSION: '3.8'
+  POETRY_VERSION: '1.6.1'
+
+jobs:
+  # Code Quality Checks
+  quality:
+    name: Code Quality
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Cache pip dependencies
+        uses: actions/cache@v3
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install -r requirements.txt[dev]
+
+      - name: Run Black (Code Formatting)
+        run: black --check --diff src/ tests/ outbound.py weekly_scheduler.py gmail_email_system.py
+
+      - name: Run isort (Import Sorting)
+        run: isort --check-only --diff src/ tests/ outbound.py weekly_scheduler.py gmail_email_system.py
+
+      - name: Run Flake8 (Linting)
+        run: flake8 src/ tests/ outbound.py weekly_scheduler.py gmail_email_system.py
+
+      - name: Run MyPy (Type Checking)
+        run: mypy src/ --ignore-missing-imports --no-strict-optional
+
+  # Security Checks
+  security:
+    name: Security Checks
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install bandit safety
+
+      - name: Run Bandit (Security Scanning)
+        run: bandit -r src/ tests/ outbound.py weekly_scheduler.py gmail_email_system.py -f json -o bandit-report.json
+
+      - name: Run Safety (Dependency Vulnerability Check)
+        run: safety check --json --output safety-report.json
+
+      - name: Upload security reports
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: security-reports
+          path: |
+            bandit-report.json
+            safety-report.json
+
+  # Testing
+  test:
+    name: Testing
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ['3.8', '3.9', '3.10', '3.11']
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Cache pip dependencies
+        uses: actions/cache@v3
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install -r requirements.txt[dev]
+
+      - name: Run tests with pytest
+        run: |
+          pytest tests/ -v --cov=src --cov=outbound --cov=weekly_scheduler --cov=gmail_email_system \
+            --cov-report=xml --cov-report=html --cov-report=term-missing \
+            --junitxml=test-results.xml
+
+      - name: Upload coverage reports
+        uses: codecov/codecov-action@v3
+        with:
+          file: ./coverage.xml
+          flags: unittests
+          name: codecov-umbrella
+          fail_ci_if_error: false
+
+      - name: Upload test results
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: test-results-${{ matrix.python-version }}
+          path: |
+            test-results.xml
+            htmlcov/
+            coverage.xml
+
+  # Integration Tests
+  integration:
+    name: Integration Tests
+    runs-on: ubuntu-latest
+    needs: [quality, security, test]
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install -r requirements.txt[dev]
+
+      - name: Set up test environment
+        run: |
+          # Create test environment file
+          cp env.example .env
+          # Set test values
+          echo "DEBUG=true" >> .env
+          echo "LOG_LEVEL=DEBUG" >> .env
+          echo "WEEKLY_RUN=false" >> .env
+
+      - name: Run integration tests
+        run: |
+          # Test main system initialization
+          python -c "from src.credentials_manager import CredentialsManager; print('Credentials manager OK')"
+          python -c "from src.llm_service import LLMService; print('LLM service OK')"
+          python -c "from src.google_sheets_service import GoogleSheetsService; print('Google Sheets service OK')"
+          
+          # Test import of main modules
+          python -c "import outbound; print('Main module OK')"
+          python -c "import weekly_scheduler; print('Scheduler module OK')"
+          python -c "import gmail_email_system; print('Email system OK')"
+
+      - name: Test configuration loading
+        run: |
+          python -c "
+          import yaml
+          with open('config/secure_config.yaml', 'r') as f:
+              config = yaml.safe_load(f)
+          print('Configuration loaded successfully')
+          print(f'API configurations: {list(config.get(\"api\", {}).keys())}')
+          "
+
+  # Performance Tests
+  performance:
+    name: Performance Tests
+    runs-on: ubuntu-latest
+    needs: [quality, security, test]
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install -r requirements.txt[dev]
+
+      - name: Run performance tests
+        run: |
+          # Test import performance
+          time python -c "import outbound; import weekly_scheduler; import gmail_email_system"
+          
+          # Test memory usage
+          python -c "
+          import psutil
+          import os
+          process = psutil.Process(os.getpid())
+          print(f'Memory usage: {process.memory_info().rss / 1024 / 1024:.2f} MB')
+          "
+
+  # Build and Package
+  build:
+    name: Build and Package
+    runs-on: ubuntu-latest
+    needs: [quality, security, test, integration]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install build dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install build twine
+
+      - name: Build package
+        run: python -m build
+
+      - name: Check package
+        run: twine check dist/*
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: dist
+          path: dist/
+
+  # Deploy (placeholder for future deployment)
+  deploy:
+    name: Deploy
+    runs-on: ubuntu-latest
+    needs: [build]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    environment: production
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Deploy placeholder
+        run: |
+          echo "Deployment would happen here"
+          echo "This is a placeholder for future deployment automation"
+
+  # Notify on failure
+  notify:
+    name: Notify on Failure
+    runs-on: ubuntu-latest
+    needs: [quality, security, test, integration, performance]
+    if: failure()
+    
+    steps:
+      - name: Notify failure
+        run: |
+          echo "CI/CD pipeline failed"
+          echo "Check the logs for details"

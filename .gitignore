@@ -1,0 +1,54 @@
+# Gmail API credentials (sensitive files)
+gmail_credentials.json
+gmail_token.json
+test_credentials.json
+
+# Environment files
+.env
+.env.local
+.env.production
+
+# Log files
+*.log
+scrape.log
+gmail_email_system.log
+weekly_scheduler.log
+
+# Cache and temporary files
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.so
+.coverage
+htmlcov/
+.pytest_cache/
+.mypy_cache/
+.tox/
+.cache/
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Lock files
+*.lock
+weekly_scheduler.lock
+outbound.lock
+
+# Data files
+all_signals.csv
+all_signals_*.csv
+test_signal_*.csv
+opportunities_tracking.json
+
+# SSL certificates
+*.crt
+*.pem
