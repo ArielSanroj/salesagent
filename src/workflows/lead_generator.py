@@ -167,7 +167,7 @@ class LeadGenerator:
                 opp_date = datetime.strptime(opp.date, "%Y-%m-%d").timestamp()
                 if opp_date >= thirty_days_ago:
                     recent_count += 1
-            except:
+            except Exception:
                 continue
 
         return {

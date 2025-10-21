@@ -35,7 +35,7 @@ class InputValidator:
                 "http",
                 "https",
             ]
-        except:
+        except Exception:
             return False
 
     @staticmethod

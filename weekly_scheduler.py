@@ -61,7 +61,7 @@ def acquire_scheduler_lock():
         return True
     except (OSError, IOError) as e:
         logging.error(f"Could not acquire scheduler lock: {e}")
-        print(f"❌ Another instance of weekly_scheduler.py is already running!")
+        print("❌ Another instance of weekly_scheduler.py is already running!")
         print(
             f"   If you're sure no other instance is running, delete the lock file: rm {SCHEDULER_LOCK_FILE}"
         )
@@ -372,8 +372,8 @@ def main():
         # Get next run time in timezone
         next_run = get_next_run_time()
 
-        logging.info(f"Weekly scheduler started (GMT-5)")
-        logging.info(f"Schedule: Every Sunday at 8:00 PM Eastern Time")
+        logging.info("Weekly scheduler started (GMT-5)")
+        logging.info("Schedule: Every Sunday at 8:00 PM Eastern Time")
         logging.info(f"Next run: {next_run.strftime('%Y-%m-%d %H:%M:%S %Z')}")
         logging.info(
             f"Target: {CONFIG['target_opportunities_per_week']} opportunities per week"

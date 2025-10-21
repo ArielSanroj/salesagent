@@ -42,12 +42,24 @@ from urllib3.util.retry import Retry
 # Add src to path for imports
 sys.path.insert(0, str(Path(__file__).parent / "src"))
 
-from constants import *
+from constants import (
+    NEWS_API_CALL_LIMIT,
+    NEWS_API_TIMEOUT,
+    NEWSDATA_LATEST_URL,
+    TARGET_OPPORTUNITIES_PER_WEEK,
+)
 from credentials_manager import CredentialsManager
-from exceptions import *
+from exceptions import (
+    APIServiceError,
+    AuthenticationError,
+    NetworkError,
+    RateLimitError,
+    ScrapingError,
+    ValidationError,
+)
 from google_sheets_service import GoogleSheetsService
 from llm_service import LLMService
-from models import SIGNAL_TYPES, Opportunity
+from models import Opportunity
 from scraping_service import ScrapingService
 from search_service import SearchService
 from signal_processor import SignalProcessor
@@ -73,47 +85,10 @@ session = None
 LOCK_FILE = "outbound.lock"
 
 # Constants
-NEWSDATA_LATEST_URL = "https://newsdata.io/api/1/latest"
 NEWS_API_CALL_COUNT = 0
 NEWS_API_CALL_LIMIT = int(os.getenv("NEWSDATA_API_CALL_LIMIT", "50"))
 
-# Signal types mapping
-SIGNAL_TYPES = {
-    1: "HR tech evaluations",
-    2: "New leadership ≤90 days",
-    3: "High-intent website/content",
-    4: "Tech stack change",
-    5: "Expansion",
-    6: "Hiring/downsizing",
-}
 
-
-class Opportunity:
-    """Data class for opportunity information"""
-
-    def __init__(
-        self,
-        title: str,
-        company: str,
-        person: str,
-        email: str,
-        url: str,
-        date: str,
-        content: str,
-        relevance_score: float,
-        signal_type: int,
-        source: str,
-    ):
-        self.title = title
-        self.company = company
-        self.person = person
-        self.email = email
-        self.url = url
-        self.date = date
-        self.content = content
-        self.relevance_score = relevance_score
-        self.signal_type = signal_type
-        self.source = source
 
 
 def initialize_services() -> bool:
@@ -136,7 +111,7 @@ def initialize_services() -> bool:
         try:
             llm_service = LLMService(credentials_manager)
             logger.info("✅ LLM service initialized successfully")
-        except Exception as e:
+except Exception as e:
             logger.warning(f"⚠️ LLM service initialization failed: {e}")
             logger.warning("System will continue with fallback responses")
             llm_service = None
@@ -154,7 +129,7 @@ def initialize_services() -> bool:
 
 def create_session() -> requests.Session:
     """Create HTTP session with retry strategy"""
-    session = requests.Session()
+session = requests.Session()
 
     # Retry strategy
     retry_strategy = Retry(
@@ -163,8 +138,8 @@ def create_session() -> requests.Session:
         status_forcelist=[429, 500, 502, 503, 504],
     )
     adapter = HTTPAdapter(max_retries=retry_strategy)
-    session.mount("http://", adapter)
-    session.mount("https://", adapter)
+session.mount("http://", adapter)
+session.mount("https://", adapter)
 
     return session
 
@@ -180,7 +155,7 @@ def acquire_lock() -> bool:
         return True
     except (OSError, IOError) as e:
         logger.error(f"Could not acquire lock: {e}")
-        print(f"❌ Another instance is already running!")
+        print("❌ Another instance is already running!")
         print(f"   Delete lock file if needed: rm {LOCK_FILE}")
         return False
 
@@ -206,7 +181,7 @@ def is_valid_url(url: str) -> bool:
             "http",
             "https",
         ]
-    except:
+    except Exception:
         return False
 
 
@@ -273,7 +248,7 @@ Company name:"""
         response = llm_service.invoke_sync(prompt, "company_extraction")
         if response and response != "Service temporarily unavailable":
             return response.strip()
-    except Exception as e:
+            except Exception as e:
         logger.warning(f"Error extracting company name: {e}")
 
     return None
@@ -360,7 +335,7 @@ Email:"""
                     logger.info(
                         f"LLM suggested email for {person} at {company}: {email}"
                     )
-                    return email
+                return email
 
         logger.warning(f"LLM returned invalid email format: {response}")
         return "Manual validation needed"
@@ -389,31 +364,102 @@ def hunter_email_verifier(email: str) -> str:
         return email
 
 
+def _check_news_api_limits() -> bool:
+    """Check if we can make API calls"""
+    global NEWS_API_CALL_COUNT
+    
+    if NEWS_API_CALL_COUNT >= NEWS_API_CALL_LIMIT:
+        logger.warning("NewsData.io daily call limit reached")
+        return False
+    
+    if not CONFIG.get("newsdata") or not CONFIG["newsdata"].get("api_key"):
+        logger.warning("NEWSDATA_API_KEY not configured; returning empty results")
+        return False
+    
+    return True
+
+
+def _handle_news_api_response(response) -> bool:
+    """Handle NewsData.io API response and return success status"""
+    if response.status_code == 429:
+        logger.warning("NewsData.io rate limit exceeded")
+        return False
+    elif response.status_code == 401:
+        logger.error("NewsData.io API key invalid or expired")
+        return False
+    elif response.status_code == 403:
+        logger.error("NewsData.io API access forbidden")
+        return False
+    elif response.status_code == 422:
+        logger.error("NewsData.io invalid request parameters")
+        return False
+    
+    return True
+
+
+def _process_news_articles(articles: List[Dict], domains: Optional[List[str]], num_results: int) -> List[Dict]:
+    """Process articles and filter by domains"""
+    processed = []
+    
+    for article in articles:
+        if len(processed) >= num_results:
+            break
+
+        url = article.get("link")
+        if not url:
+            continue
+
+        if domains:
+            parsed_domain = urlparse(url).netloc.lower()
+            stripped_domain = (
+                parsed_domain[4:]
+                if parsed_domain.startswith("www.")
+                else parsed_domain
+            )
+            if stripped_domain not in domains:
+                continue
+
+        # Build standardized article object
+        article_data = {
+            "url": url,
+            "title": article.get("title", ""),
+            "snippet": article.get("description", ""),
+            "source": article.get("source_name", article.get("source_id", "")),
+            "source_id": article.get("source_id", ""),
+            "content": article.get("content", ""),
+            "publishedAt": article.get("pubDate"),
+            "keywords": article.get("keywords", []),
+            "creator": article.get("creator", []),
+            "category": article.get("category", []),
+            "country": article.get("country", []),
+            "language": article.get("language", "english"),
+            "image_url": article.get("image_url"),
+            "article_id": article.get("article_id"),
+        }
+        processed.append(article_data)
+    
+    return processed
+
+
 def fetch_news_articles(
     query: str, num_results: int = 10, domains: Optional[List[str]] = None
 ) -> List[Dict[str, Any]]:
     """Fetch news articles from NewsData.io API with improved implementation"""
     global NEWS_API_CALL_COUNT
 
-    if NEWS_API_CALL_COUNT >= NEWS_API_CALL_LIMIT:
-        logger.warning("NewsData.io daily call limit reached")
-        return []
-
-    # Check API key
-    if not CONFIG.get("newsdata") or not CONFIG["newsdata"].get("api_key"):
-        logger.warning("NEWSDATA_API_KEY not configured; returning empty results")
+    if not _check_news_api_limits():
         return []
 
     aggregated = []
     endpoint = NEWSDATA_LATEST_URL
-
+    
     # Build base parameters
     params = {
         "apikey": CONFIG["newsdata"]["api_key"],
         "q": query,
         "language": "en",
     }
-
+    
     page_token = None
     max_pages = 5  # Prevent infinite loops
     page_count = 0
@@ -426,20 +472,7 @@ def fetch_news_articles(
 
             response = session.get(endpoint, params=request_params, timeout=30)
 
-            # Handle rate limiting
-            if response.status_code == 429:
-                logger.warning("NewsData.io rate limit exceeded")
-                break
-
-            # Handle other HTTP errors
-            if response.status_code == 401:
-                logger.error("NewsData.io API key invalid or expired")
-                break
-            elif response.status_code == 403:
-                logger.error("NewsData.io API access forbidden")
-                break
-            elif response.status_code == 422:
-                logger.error("NewsData.io invalid request parameters")
+            if not _handle_news_api_response(response):
                 break
 
             response.raise_for_status()
@@ -456,43 +489,8 @@ def fetch_news_articles(
                 logger.info("No more articles available from NewsData.io")
                 break
 
-            for article in articles:
-                if len(aggregated) >= num_results:
-                    break
-
-                url = article.get("link")
-                if not url:
-                    continue
-
-                if domains:
-                    parsed_domain = urlparse(url).netloc.lower()
-                    stripped_domain = (
-                        parsed_domain[4:]
-                        if parsed_domain.startswith("www.")
-                        else parsed_domain
-                    )
-                    if stripped_domain not in domains:
-                        continue
-
-                # Build standardized article object
-                article_data = {
-                    "url": url,
-                    "title": article.get("title", ""),
-                    "snippet": article.get("description", ""),
-                    "source": article.get("source_name", article.get("source_id", "")),
-                    "source_id": article.get("source_id", ""),
-                    "content": article.get("content", ""),
-                    "publishedAt": article.get("pubDate"),
-                    "keywords": article.get("keywords", []),
-                    "creator": article.get("creator", []),
-                    "category": article.get("category", []),
-                    "country": article.get("country", []),
-                    "language": article.get("language", "english"),
-                    "image_url": article.get("image_url"),
-                    "article_id": article.get("article_id"),
-                }
-
-                aggregated.append(article_data)
+            processed_articles = _process_news_articles(articles, domains, num_results)
+            aggregated.extend(processed_articles)
 
             page_token = payload.get("nextPage")
             page_count += 1
@@ -542,7 +540,7 @@ def scrape_url_content(url: str) -> Optional[Dict[str, str]]:
             if attempt < 2:
                 time.sleep(2**attempt)
 
-    return None
+        return None
 
 
 def process_opportunity(
@@ -556,12 +554,12 @@ def process_opportunity(
         date = article.get("publishedAt", "")
 
         if not title or not url:
-            return None
+                return None
 
         # Scrape content
         scraped_content = scrape_url_content(url)
         if not scraped_content:
-            return None
+                return None
 
         content = scraped_content["content"]
 
@@ -570,7 +568,7 @@ def process_opportunity(
         person = extract_person_name(content)
 
         if not company:
-            return None
+        return None
 
         # Calculate relevance score
         keywords = CONFIG["search"]["keywords"]
@@ -607,9 +605,9 @@ def process_opportunity(
         )
         return opportunity
 
-    except Exception as e:
+        except Exception as e:
         logger.error(f"Error processing opportunity: {e}")
-        return None
+                return None
 
 
 def generate_queries(signal_id: int) -> List[str]:

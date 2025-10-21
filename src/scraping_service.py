@@ -53,7 +53,7 @@ class ScrapingService:
                 "http",
                 "https",
             ]
-        except:
+        except Exception:
             return False
 
     def can_scrape(self, url: str) -> bool:
