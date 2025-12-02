@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
 """
 Daily HR Tech Lead Generation Scheduler
-Automatically runs the lead generation script every day at 8:00 AM
+Automatically runs the lead generation script every day at 7:45 AM Eastern Time (GMT-5)
 Generates opportunities daily for Clio Circle AI
 """
 
+import csv
 import fcntl
 import json
 import logging
@@ -14,6 +15,7 @@ import sys
 import time
 from datetime import datetime, timedelta
 from pathlib import Path
+from typing import Optional
 
 import pytz
 import schedule
@@ -37,8 +39,8 @@ CONFIG = {
     "target_opportunities_per_week": 50,  # Weekly target for full runs
     "signals_per_run": 6,  # All 6 signal types
     "results_per_signal": 2,  # Target 2 results per signal daily
-    "run_time": "08:00",  # 8:00 AM daily
-    "timezone": "America/New_York",  # Eastern Time
+    "run_time": "07:45",  # 7:45 AM daily (GMT-5 / Eastern Time)
+    "timezone": "America/New_York",  # Eastern Time (GMT-5)
     "email_recipient": "ariel@cliocircle.com",
     "data_retention_days": 90,  # Keep data for 90 days
     "opportunity_tracking_file": "opportunities_tracking.json",
@@ -83,6 +85,24 @@ class WeeklyLeadGenerator:
         self.script_path = Path(__file__).parent / "outbound.py"
         self.credentials_manager = CredentialsManager()
 
+    def _parse_week_key(self, week_key: str) -> Optional[datetime]:
+        """Convert stored week identifiers to datetime anchors for retention checks."""
+        if not week_key:
+            return None
+
+        # Primary format uses "%Y-%W" (e.g. "2025-39"); append weekday to make it parseable
+        try:
+            return datetime.strptime(f"{week_key}-1", "%Y-%W-%w")
+        except Exception:
+            pass
+
+        # Legacy ISO strings
+        try:
+            return datetime.fromisoformat(week_key)
+        except Exception:
+            logging.warning(f"Unable to parse week key '{week_key}', skipping cleanup")
+            return None
+
     def load_tracking_data(self):
         """Load existing opportunity tracking data"""
         tracking_file = CONFIG["opportunity_tracking_file"]
@@ -121,7 +141,10 @@ class WeeklyLeadGenerator:
         # Clean up old tracking data
         weeks_to_remove = []
         for week_key in self.opportunities_tracking["opportunities_by_week"]:
-            week_date = datetime.fromisoformat(week_key)
+            # week_key format is "%Y-%W" (e.g., "2025-39"); parse accordingly
+            week_date = self._parse_week_key(week_key)
+            if not week_date:
+                continue
             if week_date < cutoff_date:
                 weeks_to_remove.append(week_key)
 
@@ -129,7 +152,7 @@ class WeeklyLeadGenerator:
             del self.opportunities_tracking["opportunities_by_week"][week_key]
             logging.info(f"Cleaned up old week data: {week_key}")
 
-    def run_lead_generation(self, *, weekly: bool) -> bool:
+    def run_lead_generation(self, *, weekly: bool = False) -> bool:
         """Run the lead generation script with appropriate configuration"""
         job_label = "weekly" if weekly else "daily"
         logging.info(f"Starting {job_label} lead generation run")
@@ -141,10 +164,11 @@ class WeeklyLeadGenerator:
             # Set environment variables for production run
             env = os.environ.copy()
             env["WEEKLY_RUN"] = "true" if weekly else "false"
+            env["SKIP_EMAIL"] = "true"  # Scheduler will send email, prevent duplicate
             target = (
-                CONFIG["target_opportunities_per_week"]
+                CONFIG.get("target_opportunities_per_week", 50)
                 if weekly
-                else CONFIG["target_opportunities_per_day"]
+                else CONFIG.get("target_opportunities_per_day", 10)
             )
             env["TARGET_OPPORTUNITIES"] = str(target)
 
@@ -317,54 +341,207 @@ Next Run: Next Sunday at 8:00 PM Eastern Time
             logging.error(f"Failed to send weekly report: {e}")
 
     def send_daily_report(self):
-        """Send daily performance report"""
+        """Send daily performance report with same format as outbound.py"""
         try:
             import smtplib
+            from email import encoders
+            from email.mime.base import MIMEBase
             from email.mime.multipart import MIMEMultipart
             from email.mime.text import MIMEText
 
-            # Get current day data
-            current_date = datetime.now().strftime("%Y-%m-%d")
+            # Import signal types for formatting
+            sys.path.insert(0, str(Path(__file__).parent))
+            try:
+                from src.constants import SIGNAL_TYPES
+            except ImportError:
+                # Fallback if import fails
+                SIGNAL_TYPES = {
+                    1: "HR tech evaluations",
+                    2: "New leadership ≤90 days",
+                    3: "High-intent website/content",
+                    4: "Tech stack change",
+                    5: "Expansion",
+                    6: "Hiring/downsizing",
+                }
 
-            # Create report
-            report = f"""
-Daily HR Tech Lead Generation Report
-====================================
+            # Read opportunities from CSV
+            opportunities = []
+            leads_file = Path("all_signals.csv")
+            target = CONFIG["target_opportunities_per_day"]
 
-Date: {current_date}
-Time: {datetime.now().strftime('%H:%M')}
+            if leads_file.exists():
+                try:
+                    with open(leads_file, "r", newline="") as csvfile:
+                        reader = csv.DictReader(csvfile)
+                        for row in reader:
+                            opportunities.append(
+                                {
+                                    "company": row.get("Company", "Unknown"),
+                                    "person": row.get("Person", "N/A"),
+                                    "email": row.get("Email", "Needs lookup"),
+                                    "url": row.get("URL", ""),
+                                    "signal_type": int(row.get("Signal Type", 1)),
+                                }
+                            )
+                            if len(opportunities) >= target:
+                                break
+                except Exception as e:
+                    logging.error(f"Failed to read leads file: {e}")
 
-Performance:
-- Target: {CONFIG['target_opportunities_per_day']} opportunities per day
-- Signals Processed: {CONFIG['signals_per_run']} signal types
-- Results per Signal: {CONFIG['results_per_signal']} opportunities
+            # Build HTML table format for better readability
+            if not opportunities:
+                report_content = (
+                    "<p>No opportunities were generated during this run.</p>"
+                )
+            else:
+                # Create HTML table
+                table_rows = []
+                for idx, opp in enumerate(opportunities, start=1):
+                    signal_name = SIGNAL_TYPES.get(opp["signal_type"], "Unknown signal")
+                    email_value = opp["email"] if opp["email"] else "Needs lookup"
+                    person_value = opp["person"] if opp["person"] else "N/A"
+                    url_value = opp["url"] if opp["url"] else ""
 
-Daily Summary:
-- All 6 buyer signals activated
-- NewsData API searches completed
-- Content scraping and LLM analysis performed
-- Quality filtering applied (relevance score > 0.7)
+                    # Truncate long URLs for display
+                    url_display = (
+                        url_value[:50] + "..." if len(url_value) > 50 else url_value
+                    )
+                    url_link = (
+                        f'<a href="{url_value}">{url_display}</a>'
+                        if url_value
+                        else "N/A"
+                    )
 
-Files Generated:
-- all_signals.csv: Complete opportunity list
-- Individual signal files: test_signal_*.csv
-- email_drafts_summary.json: Personalized email drafts created
+                    table_rows.append(
+                        f"""
+                    <tr>
+                        <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">{idx}</td>
+                        <td style="border: 1px solid #ddd; padding: 8px; font-weight: bold;">{opp['company']}</td>
+                        <td style="border: 1px solid #ddd; padding: 8px;">{signal_name}</td>
+                        <td style="border: 1px solid #ddd; padding: 8px;">{person_value}</td>
+                        <td style="border: 1px solid #ddd; padding: 8px;"><a href="mailto:{email_value}">{email_value}</a></td>
+                        <td style="border: 1px solid #ddd; padding: 8px; font-size: 11px;">{url_link}</td>
+                    </tr>
+                    """
+                    )
 
-Email Drafts:
-- Personalized drafts created in Gmail for each lead
-- Each draft tailored to specific signal type and company context
-- Ready for review and sending
+                report_content = f"""
+                <p>Generated <strong>{len(opportunities)}</strong> opportunities toward a target of <strong>{target}</strong>.</p>
+                <table style="border-collapse: collapse; width: 100%; margin: 20px 0; font-family: Arial, sans-serif; font-size: 13px;">
+                    <thead>
+                        <tr style="background-color: #4CAF50; color: white;">
+                            <th style="border: 1px solid #ddd; padding: 12px; text-align: left;">#</th>
+                            <th style="border: 1px solid #ddd; padding: 12px; text-align: left;">Company</th>
+                            <th style="border: 1px solid #ddd; padding: 12px; text-align: left;">Signal Type</th>
+                            <th style="border: 1px solid #ddd; padding: 12px; text-align: left;">Contact</th>
+                            <th style="border: 1px solid #ddd; padding: 12px; text-align: left;">Email</th>
+                            <th style="border: 1px solid #ddd; padding: 12px; text-align: left;">URL</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {''.join(table_rows)}
+                    </tbody>
+                </table>
+                """
 
-Next Run: Tomorrow at 8:00 AM Eastern Time
+            # Create HTML email body
+            html_body = f"""
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <meta charset="UTF-8">
+                <style>
+                    body {{ font-family: Arial, sans-serif; line-height: 1.6; color: #333; }}
+                    .container {{ max-width: 1000px; margin: 0 auto; padding: 20px; }}
+                    .header {{ background-color: #f4f4f4; padding: 15px; border-radius: 5px; margin-bottom: 20px; }}
+                    .footer {{ margin-top: 30px; padding-top: 15px; border-top: 1px solid #ddd; font-size: 12px; color: #666; }}
+                </style>
+            </head>
+            <body>
+                <div class="container">
+                    <div class="header">
+                        <h2 style="margin: 0; color: #2c3e50;">Daily HR Tech Lead Generation Report</h2>
+                        <p style="margin: 5px 0 0 0; color: #7f8c8d;">Generated on {datetime.now().strftime('%Y-%m-%d at %H:%M')}</p>
+                    </div>
+
+                    <p>Hello Ariel,</p>
+                    <p>Here are the latest HR tech opportunities:</p>
+
+                    {report_content}
+
+                    <div class="footer">
+                        <p>This update was automatically generated by your HR Tech Lead Generation System.</p>
+                    </div>
+                </div>
+            </body>
+            </html>
+            """
+
+            # Create plain text version for email clients that don't support HTML
+            plain_body = f"""
+Hello Ariel,
+
+Here are the latest HR tech opportunities generated on {datetime.now().strftime('%Y-%m-%d at %H:%M')}.
+
+Generated {len(opportunities)} opportunities toward a target of {target}.
+
+Opportunities:
 """
+            if opportunities:
+                plain_body += "\n"
+                plain_body += f"{'#':<4} {'Company':<30} {'Signal Type':<30} {'Contact':<25} {'Email':<35}\n"
+                plain_body += "-" * 130 + "\n"
+                for idx, opp in enumerate(opportunities, start=1):
+                    signal_name = SIGNAL_TYPES.get(opp["signal_type"], "Unknown signal")
+                    email_value = opp["email"] if opp["email"] else "Needs lookup"
+                    person_value = opp["person"] if opp["person"] else "N/A"
+                    company_short = (
+                        opp["company"][:28]
+                        if len(opp["company"]) > 28
+                        else opp["company"]
+                    )
+                    signal_short = (
+                        signal_name[:28] if len(signal_name) > 28 else signal_name
+                    )
+                    person_short = (
+                        person_value[:23] if len(person_value) > 23 else person_value
+                    )
+                    email_short = (
+                        email_value[:33] if len(email_value) > 33 else email_value
+                    )
+                    plain_body += f"{idx:<4} {company_short:<30} {signal_short:<30} {person_short:<25} {email_short:<35}\n"
+                    if opp["url"]:
+                        plain_body += f"     URL: {opp['url']}\n"
+            else:
+                plain_body += "No opportunities were generated during this run.\n"
 
-            # Send email
-            msg = MIMEMultipart()
+            plain_body += "\n---\nThis update was automatically generated by your HR Tech Lead Generation System."
+
+            # Create message
+            msg = MIMEMultipart("alternative")
             msg["From"] = "ariel@cliocircle.com"
             msg["To"] = CONFIG["email_recipient"]
-            msg["Subject"] = f"Daily HR Tech Lead Generation Report - {current_date}"
+            msg["Subject"] = "daily leads"
 
-            msg.attach(MIMEText(report, "plain"))
+            # Attach both plain text and HTML versions
+            msg.attach(MIMEText(plain_body, "plain"))
+            msg.attach(MIMEText(html_body, "html"))
+
+            # Attach CSV file if it exists
+            if leads_file.exists():
+                try:
+                    with open(leads_file, "rb") as attachment:
+                        part = MIMEBase("application", "octet-stream")
+                        part.set_payload(attachment.read())
+                        encoders.encode_base64(part)
+                        part.add_header(
+                            "Content-Disposition",
+                            f"attachment; filename= {leads_file.name}",
+                        )
+                        msg.attach(part)
+                    logging.info(f"CSV file attached: {leads_file.name}")
+                except Exception as e:
+                    logging.warning(f"Failed to attach CSV file: {e}")
 
             # Get email configuration from credentials manager
             email_config = self.credentials_manager.get_email_config()
@@ -379,10 +556,12 @@ Next Run: Tomorrow at 8:00 AM Eastern Time
             )
             server.quit()
 
-            logging.info("Daily report sent successfully")
+            logging.info(
+                f"Daily report sent successfully with {len(opportunities)} opportunities"
+            )
 
         except Exception as e:
-            logging.error(f"Failed to send daily report: {e}")
+            logging.error(f"Failed to send daily report: {e}", exc_info=True)
 
     def run_weekly_job(self):
         """Main weekly job function"""
@@ -419,12 +598,18 @@ Next Run: Tomorrow at 8:00 AM Eastern Time
         # Run lead generation with daily target
         success = self.run_lead_generation(weekly=False)
 
-        if success:
-            # Send daily report
+        # Always send daily report, even if no opportunities found
+        # This ensures you receive daily updates
+        try:
             self.send_daily_report()
+            logging.info("Daily report sent")
+        except Exception as e:
+            logging.error(f"Failed to send daily report: {e}")
+
+        if success:
             logging.info("Daily job completed successfully")
         else:
-            logging.error("Daily job failed")
+            logging.error("Daily job failed (but report was sent)")
 
         logging.info("=" * 50)
         logging.info("DAILY JOB COMPLETED")
@@ -437,11 +622,9 @@ def get_next_run_time():
     now = datetime.now(tz)
 
     run_hour, run_minute = map(int, CONFIG["run_time"].split(":"))
-    
+
     # Create next run time for today
-    next_run = now.replace(
-        hour=run_hour, minute=run_minute, second=0, microsecond=0
-    )
+    next_run = now.replace(hour=run_hour, minute=run_minute, second=0, microsecond=0)
 
     # If the time has already passed today, schedule for tomorrow
     if next_run <= now:
@@ -453,16 +636,16 @@ def get_next_run_time():
 def main():
     """Main function to set up and run the scheduler"""
     import signal
-    
+
     # Set up signal handlers for graceful shutdown
     def signal_handler(signum, frame):
         logging.info(f"Received signal {signum}, shutting down gracefully...")
         release_scheduler_lock()
         sys.exit(0)
-    
+
     signal.signal(signal.SIGTERM, signal_handler)
     signal.signal(signal.SIGINT, signal_handler)
-    
+
     # Acquire lock to prevent multiple scheduler instances
     if not acquire_scheduler_lock():
         sys.exit(1)
@@ -470,14 +653,14 @@ def main():
     try:
         generator = WeeklyLeadGenerator()
 
-        # Schedule the daily job at 8:00 AM
+        # Schedule the daily job at 7:45 AM Eastern Time
         schedule.every().day.at(CONFIG["run_time"]).do(generator.run_daily_job)
 
         # Get next run time in timezone
         next_run = get_next_run_time()
 
-        logging.info("Daily scheduler started - runs at 8:00 AM Eastern Time")
-        logging.info("Schedule: Every day at 8:00 AM Eastern Time")
+        logging.info("Daily scheduler started - runs at 7:45 AM Eastern Time (GMT-5)")
+        logging.info("Schedule: Every day at 7:45 AM Eastern Time (GMT-5)")
         logging.info(f"Next run: {next_run.strftime('%Y-%m-%d %H:%M:%S %Z')}")
         logging.info(
             f"Target: {CONFIG['target_opportunities_per_day']} opportunities per day"

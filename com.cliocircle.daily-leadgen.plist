@@ -7,8 +7,8 @@
 
     <key>ProgramArguments</key>
     <array>
-        <string>/usr/bin/python3</string>
-        <string>/Users/arielsanroj/PycharmProjects/outboundai/start_daily_scheduler.py</string>
+        <string>/Users/arielsanroj/PycharmProjects/outboundai/venv/bin/python3</string>
+        <string>/Users/arielsanroj/PycharmProjects/outboundai/weekly_scheduler.py</string>
     </array>
 
     <key>WorkingDirectory</key>

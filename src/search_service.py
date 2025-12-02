@@ -28,15 +28,21 @@ from exceptions import (
 
 logger = logging.getLogger(__name__)
 
+SERP_API_URL = "https://serpapi.com/search"
+
 
 class SearchService:
     """Service for searching news articles"""
 
     def __init__(
-        self, session: Optional[requests.Session] = None, api_key: Optional[str] = None
+        self,
+        session: Optional[requests.Session] = None,
+        api_key: Optional[str] = None,
+        serp_api_key: Optional[str] = None,
     ):
         self.session = session or self._create_session()
         self.api_key = api_key
+        self.serp_api_key = serp_api_key
         self.call_count = 0
         self.call_limit = 50  # Default limit
 
@@ -58,6 +64,10 @@ class SearchService:
     def set_api_key(self, api_key: str) -> None:
         """Set API key for the service"""
         self.api_key = api_key
+
+    def set_serp_api_key(self, api_key: str) -> None:
+        """Set SerpAPI key for the service"""
+        self.serp_api_key = api_key
 
     def set_call_limit(self, limit: int) -> None:
         """Set API call limit"""
@@ -199,15 +209,124 @@ class SearchService:
         )
         return aggregated[:num_results]
 
+    def search_serpapi(
+        self, query: str, num_results: int = 10, domains: Optional[List[str]] = None
+    ) -> List[Dict[str, Any]]:
+        """Search for news articles using SerpAPI Google News"""
+        if not self._check_rate_limit():
+            return []
+
+        if not self.serp_api_key:
+            logger.info("SerpAPI key not configured")
+            return []
+
+        params = {
+            "engine": "google_news",
+            "q": query,
+            "hl": "en",
+            "gl": "us",
+            "api_key": self.serp_api_key,
+            "num": min(num_results, 10),
+        }
+
+        aggregated: List[Dict[str, Any]] = []
+
+        try:
+            response = self.session.get(
+                SERP_API_URL, params=params, timeout=NEWS_API_TIMEOUT
+            )
+
+            if response.status_code == 401:
+                raise AuthenticationError("SerpAPI key invalid or expired")
+
+            response.raise_for_status()
+            payload = response.json()
+
+            results = payload.get("news_results", [])
+            if not results:
+                logger.info("SerpAPI returned no results for query '%s'", query)
+                return []
+
+            for item in results:
+                if len(aggregated) >= num_results:
+                    break
+
+                url = item.get("link")
+                if not url:
+                    continue
+
+                if domains:
+                    from urllib.parse import urlparse
+
+                    parsed_domain = urlparse(url).netloc.lower()
+                    stripped_domain = (
+                        parsed_domain[4:]
+                        if parsed_domain.startswith("www.")
+                        else parsed_domain
+                    )
+                    if stripped_domain not in domains:
+                        continue
+
+                article_data = {
+                    "url": url,
+                    "title": item.get("title", ""),
+                    "snippet": item.get("snippet", ""),
+                    "source": item.get("source", {}).get("name")
+                    if isinstance(item.get("source"), dict)
+                    else item.get("source", ""),
+                    "source_id": item.get("source", {}).get("name")
+                    if isinstance(item.get("source"), dict)
+                    else item.get("source", ""),
+                    "content": item.get("snippet", ""),
+                    "publishedAt": item.get("date"),
+                    "keywords": [],
+                    "creator": [],
+                    "category": [],
+                    "language": "english",
+                    "image_url": item.get("thumbnail"),
+                    "article_id": item.get("position"),
+                }
+
+                aggregated.append(article_data)
+
+        except requests.exceptions.RequestException as e:
+            raise NetworkError(f"SerpAPI request failed: {e}")
+        except Exception as e:
+            logger.error(f"Unexpected error in SerpAPI search: {e}")
+            raise APIServiceError(f"SerpAPI search failed: {e}")
+        finally:
+            self.call_count += 1
+
+        logger.info(
+            "SerpAPI returned %s articles for query '%s'", len(aggregated), query
+        )
+        return aggregated[:num_results]
+
     def search_articles(
         self, query: str, num_results: int = 10, domains: Optional[List[str]] = None
     ) -> List[Dict[str, Any]]:
-        """Search for articles using available providers"""
-        try:
-            return self.search_newsdata(query, num_results, domains)
-        except Exception as e:
-            logger.error(f"Search failed: {e}")
+        """Search for articles using available providers with graceful fallback"""
+        articles: List[Dict[str, Any]] = []
+        remaining = num_results
+
+        if remaining <= 0:
             return []
+
+        try:
+            newsdata_results = self.search_newsdata(query, remaining, domains)
+            articles.extend(newsdata_results)
+            remaining -= len(newsdata_results)
+        except Exception as e:
+            logger.error(f"NewsData.io search failed: {e}")
+
+        if remaining > 0:
+            try:
+                serp_results = self.search_serpapi(query, remaining, domains)
+                articles.extend(serp_results)
+            except Exception as e:
+                logger.error(f"SerpAPI search failed: {e}")
+
+        return articles[:num_results]
 
     def get_call_count(self) -> int:
         """Get current API call count"""

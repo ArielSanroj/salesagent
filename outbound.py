@@ -79,6 +79,7 @@ logger = logging.getLogger(__name__)
 # Global variables
 credentials_manager = None
 llm_service = None
+gmail_system = None
 CONFIG = None
 session = None
 
@@ -226,7 +227,7 @@ def calculate_relevance_score(content: str, keywords: List[str]) -> float:
 
 
 def extract_company_name(text: str) -> Optional[str]:
-    """Extract company name from text using LLM"""
+    """Extract company name from text using LLM, prioritizing actual companies over news sources"""
     if not text or len(text) < 10:
         return None
 
@@ -237,24 +238,80 @@ def extract_company_name(text: str) -> Optional[str]:
         )
         return None
 
-    prompt = f"""Extract the company name from this text. Return only the company name, nothing else.
+    # Improved prompt to identify actual companies (not news publishers)
+    prompt = f"""Extract the ACTUAL COMPANY NAME mentioned in this article, NOT the news website or publisher.
 
-Text: {text[:500]}
+Avoid news sources like: Postregister, Hastingstribune, SHRM, PR Newswire, Deloitte (if article), Mercer (if article), etc.
 
-Company name:"""
+Look for:
+- Companies that are the SUBJECT of the article (e.g., "Rally House", "McLean & Company", "Smartstream")
+- Companies mentioned in quotes or as the main topic
+- Companies that are doing something (receiving awards, making announcements, etc.)
+
+Text: {text[:1000]}
+
+Actual company name (not news source):"""
 
     try:
         response = llm_service.invoke_sync(prompt, "company_extraction")
         if response and response != "Service temporarily unavailable":
-            return response.strip()
+            cleaned = response.strip()
+            # Filter out common news sources
+            news_sources = [
+                "postregister",
+                "hastingstribune",
+                "shrm",
+                "pr newswire",
+                "prnewswire",
+                "deloitte",
+                "mercer",
+                "fintech finance",
+                "ffnews",
+            ]
+            if cleaned.lower() not in [ns.lower() for ns in news_sources]:
+                logger.info(f"✅ Extracted company: {cleaned}")
+                return cleaned
+            else:
+                logger.warning(
+                    f"⚠️  Extracted company appears to be news source: {cleaned}"
+                )
+                # Try fallback with more specific instruction
+                return _extract_company_fallback(text)
     except Exception as e:
         logger.warning(f"Error extracting company name: {e}")
 
     return None
 
 
+def _extract_company_fallback(text: str) -> Optional[str]:
+    """Fallback company extraction with more specific instructions"""
+    if not llm_service:
+        return None
+
+    prompt = f"""From this text, identify the company that is the MAIN SUBJECT or TOPIC of the article.
+This should be a business/organization, NOT a news website, publisher, or media company.
+
+Examples:
+- If article says "Rally House wins award" → Company is "Rally House"
+- If article says "McLean & Company releases playbook" → Company is "McLean & Company"
+- If article is ABOUT a company doing something → That company
+
+Text: {text[:800]}
+
+Company name (main subject):"""
+
+    try:
+        response = llm_service.invoke_sync(prompt, "company_extraction")
+        if response and response != "Service temporarily unavailable":
+            return response.strip()
+    except Exception:
+        pass
+
+    return None
+
+
 def extract_person_name(text: str) -> Optional[str]:
-    """Extract person name from text using LLM"""
+    """Extract person name from text using LLM, prioritizing quotes"""
     if not text or len(text) < 10:
         return None
 
@@ -265,16 +322,52 @@ def extract_person_name(text: str) -> Optional[str]:
         )
         return None
 
-    prompt = f"""Extract the person's name (CHRO, HR leader, or executive) from this text. Return only the full name, nothing else.
+    # First, try to extract from quotes (higher priority)
+    prompt_quotes = f"""Extract the person's name from quotes in this text. Look for names mentioned after titles like:
+- "said [Name]"
+- "according to [Name]"
+- "[Name], CHRO/VP HR/Head of HR"
+- "[Title] [Name] said"
+
+Focus on CHRO, VP of HR, Head of HR, or other HR executives mentioned in quotes.
+
+Text: {text[:1000]}
+
+Person name (from quotes):"""
+
+    try:
+        response = llm_service.invoke_sync(prompt_quotes, "person_extraction")
+        if response and response != "Service temporarily unavailable":
+            cleaned = response.strip()
+            # Validate it looks like a name (has at least 2 words)
+            if (
+                cleaned
+                and len(cleaned.split()) >= 2
+                and cleaned.lower() not in ["unknown", "none", "n/a"]
+            ):
+                logger.info(f"✅ Found person name from quotes: {cleaned}")
+                return cleaned
+    except Exception as e:
+        logger.warning(f"Error extracting person name from quotes: {e}")
+
+    # Fallback: General extraction if quotes didn't work
+    prompt_general = f"""Extract the person's name (CHRO, HR leader, or executive) from this text. Return only the full name, nothing else.
 
 Text: {text[:500]}
 
 Person name:"""
 
     try:
-        response = llm_service.invoke_sync(prompt, "person_extraction")
+        response = llm_service.invoke_sync(prompt_general, "person_extraction")
         if response and response != "Service temporarily unavailable":
-            return response.strip()
+            cleaned = response.strip()
+            if (
+                cleaned
+                and len(cleaned.split()) >= 2
+                and cleaned.lower() not in ["unknown", "none", "n/a"]
+            ):
+                logger.info(f"✅ Found person name (general extraction): {cleaned}")
+                return cleaned
     except Exception as e:
         logger.warning(f"Error extracting person name: {e}")
 
@@ -653,9 +746,21 @@ def run_signal(signal_id: int) -> List[Opportunity]:
     logger.info(f"Running signal {signal_id}: {SIGNAL_TYPES.get(signal_id, 'Unknown')}")
 
     # Initialize services
-    search_service = SearchService(session, CONFIG.get("newsdata", {}).get("api_key"))
+    newsdata_config = CONFIG.get("newsdata") or {}
+    serpapi_config = CONFIG.get("serpapi") or {}
+
+    search_service = SearchService(
+        session,
+        newsdata_config.get("api_key"),
+        serpapi_config.get("api_key"),
+    )
     scraping_service = ScrapingService(session)
-    signal_processor = SignalProcessor(llm_service, search_service, scraping_service)
+    signal_processor = SignalProcessor(
+        llm_service,
+        search_service,
+        scraping_service,
+        CONFIG.get("quality", {}),
+    )
 
     # Process the signal
     opportunities = signal_processor.process_signal(signal_id, 10)
@@ -718,6 +823,99 @@ def filter_results(opportunities: List[Opportunity]) -> List[Opportunity]:
     return filtered
 
 
+def create_email_drafts_for_opportunities(opportunities: List[Opportunity]) -> None:
+    """Create Gmail drafts for the provided opportunities"""
+    global gmail_system
+
+    if not opportunities:
+        logger.info("No opportunities available for email draft creation")
+        return
+
+    if gmail_system is None:
+        try:
+            from gmail_email_system import GmailEmailSystem
+
+            gmail_system = GmailEmailSystem(credentials_manager)
+            logger.info("Gmail email system initialized")
+        except Exception as e:
+            logger.error(f"Unable to initialize Gmail email system: {e}")
+            return
+
+    payload = []
+    for opp in opportunities:
+        payload.append(
+            {
+                "company": opp.company,
+                "person": opp.person,
+                "email": opp.email,
+                "signal_type": opp.signal_type,
+                "url": opp.url,
+            }
+        )
+
+    try:
+        drafts = gmail_system.create_batch_drafts(payload) or []
+        gmail_system.save_draft_summary(drafts)
+        logger.info("Email drafts created and summarized successfully")
+    except Exception as e:
+        logger.error(f"Error while creating Gmail drafts: {e}")
+
+
+def summarize_opportunities(opportunities: List[Opportunity], target: int) -> str:
+    """Build a human-readable summary for email reports"""
+    if not opportunities:
+        return "No opportunities were generated during this run."
+
+    lines = [
+        f"Generated {len(opportunities)} opportunities toward a target of {target}.",
+        "",
+        "Opportunities:",
+    ]
+
+    for idx, opp in enumerate(opportunities, start=1):
+        signal_name = SIGNAL_TYPES.get(opp.signal_type, "Unknown signal")
+        email_value = opp.email if opp.email else "Needs lookup"
+        lines.append(
+            f"{idx}. {opp.company} - {signal_name} | Contact: {opp.person or 'N/A'} | Email: {email_value}"
+        )
+        if opp.url:
+            lines.append(f"   URL: {opp.url}")
+
+    return "\n".join(lines)
+
+
+def run_full_lead_generation(target_opportunities: int) -> List[Opportunity]:
+    """Run all signals and return filtered opportunities capped at the target"""
+    logger.info("Starting full lead generation workflow")
+    all_opportunities: List[Opportunity] = []
+
+    for signal_id in range(1, 7):
+        opportunities = run_signal(signal_id)
+        all_opportunities.extend(opportunities)
+
+        if target_opportunities and len(all_opportunities) >= target_opportunities:
+            logger.info(
+                "Collected at least %s raw opportunities, continuing to ensure coverage",
+                target_opportunities,
+            )
+
+        time.sleep(5)
+
+    filtered = filter_results(all_opportunities)
+    if target_opportunities > 0:
+        filtered = filtered[:target_opportunities]
+
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M")
+    save_results(filtered, f"all_signals_{timestamp}.csv")
+    save_results(filtered, "all_signals.csv")
+    create_email_drafts_for_opportunities(filtered)
+
+    logger.info(
+        "Full lead generation workflow completed with %s opportunities", len(filtered)
+    )
+    return filtered
+
+
 def test_signal(signal_id: int) -> List[Opportunity]:
     """Test a single signal for development"""
     logger.info(f"Testing signal {signal_id}")
@@ -736,8 +934,13 @@ def test_signal(signal_id: int) -> List[Opportunity]:
         return []
 
 
-def send_email_report(report_content: str, csv_file_path: Optional[str] = None) -> bool:
-    """Send the synthesized report via email"""
+def send_email_report(
+    report_content: str,
+    csv_file_path: Optional[str] = None,
+    email_subject: str = "daily leads",
+    opportunities: Optional[List[Opportunity]] = None,
+) -> bool:
+    """Send the synthesized report via email with HTML table format"""
     email_config = CONFIG.get("email", {})
 
     if not email_config:
@@ -745,27 +948,142 @@ def send_email_report(report_content: str, csv_file_path: Optional[str] = None) 
         return False
 
     try:
-        # Create message
-        msg = MIMEMultipart()
+        # Create message with alternative content (HTML + plain text)
+        msg = MIMEMultipart("alternative")
         msg["From"] = email_config["sender_email"]
         msg["To"] = email_config["recipient_email"]
-        msg[
-            "Subject"
-        ] = f"HR Tech Lead Generation Report - {datetime.now().strftime('%Y-%m-%d %H:%M')}"
+        msg["Subject"] = email_subject
 
-        # Add report content to email body
-        body = f"""
+        # If opportunities are provided, create HTML table format
+        if opportunities:
+            # Create HTML table
+            table_rows = []
+            for idx, opp in enumerate(opportunities, start=1):
+                signal_name = SIGNAL_TYPES.get(opp.signal_type, "Unknown signal")
+                email_value = opp.email if opp.email else "Needs lookup"
+                person_value = opp.person if opp.person else "N/A"
+                url_value = opp.url if opp.url else ""
+
+                # Truncate long URLs for display
+                url_display = (
+                    url_value[:50] + "..." if len(url_value) > 50 else url_value
+                )
+                url_link = (
+                    f'<a href="{url_value}">{url_display}</a>' if url_value else "N/A"
+                )
+
+                table_rows.append(
+                    f"""
+                <tr>
+                    <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">{idx}</td>
+                    <td style="border: 1px solid #ddd; padding: 8px; font-weight: bold;">{opp.company}</td>
+                    <td style="border: 1px solid #ddd; padding: 8px;">{signal_name}</td>
+                    <td style="border: 1px solid #ddd; padding: 8px;">{person_value}</td>
+                    <td style="border: 1px solid #ddd; padding: 8px;"><a href="mailto:{email_value}">{email_value}</a></td>
+                    <td style="border: 1px solid #ddd; padding: 8px; font-size: 11px;">{url_link}</td>
+                </tr>
+                """
+                )
+
+            html_table = f"""
+            <p>Generated <strong>{len(opportunities)}</strong> opportunities.</p>
+            <table style="border-collapse: collapse; width: 100%; margin: 20px 0; font-family: Arial, sans-serif; font-size: 13px;">
+                <thead>
+                    <tr style="background-color: #4CAF50; color: white;">
+                        <th style="border: 1px solid #ddd; padding: 12px; text-align: left;">#</th>
+                        <th style="border: 1px solid #ddd; padding: 12px; text-align: left;">Company</th>
+                        <th style="border: 1px solid #ddd; padding: 12px; text-align: left;">Signal Type</th>
+                        <th style="border: 1px solid #ddd; padding: 12px; text-align: left;">Contact</th>
+                        <th style="border: 1px solid #ddd; padding: 12px; text-align: left;">Email</th>
+                        <th style="border: 1px solid #ddd; padding: 12px; text-align: left;">URL</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {''.join(table_rows)}
+                </tbody>
+            </table>
+            """
+
+            html_body = f"""
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <meta charset="UTF-8">
+                <style>
+                    body {{ font-family: Arial, sans-serif; line-height: 1.6; color: #333; }}
+                    .container {{ max-width: 1000px; margin: 0 auto; padding: 20px; }}
+                    .header {{ background-color: #f4f4f4; padding: 15px; border-radius: 5px; margin-bottom: 20px; }}
+                    .footer {{ margin-top: 30px; padding-top: 15px; border-top: 1px solid #ddd; font-size: 12px; color: #666; }}
+                </style>
+            </head>
+            <body>
+                <div class="container">
+                    <div class="header">
+                        <h2 style="margin: 0; color: #2c3e50;">Daily HR Tech Lead Generation Report</h2>
+                        <p style="margin: 5px 0 0 0; color: #7f8c8d;">Generated on {datetime.now().strftime('%Y-%m-%d at %H:%M')}</p>
+                    </div>
+
+                    <p>Hello Ariel,</p>
+                    <p>Here are the latest HR tech opportunities:</p>
+
+                    {html_table}
+
+                    <div class="footer">
+                        <p>This update was automatically generated by your HR Tech Lead Generation System.</p>
+                    </div>
+                </div>
+            </body>
+            </html>
+            """
+
+            # Plain text version
+            plain_body = f"""
 Hello Ariel,
 
-Here's your latest HR Tech Lead Generation Report generated on {datetime.now().strftime('%Y-%m-%d at %H:%M')}.
+Here are the latest HR tech opportunities generated on {datetime.now().strftime('%Y-%m-%d at %H:%M')}.
+
+Generated {len(opportunities)} opportunities.
+
+Opportunities:
+"""
+            plain_body += "\n"
+            plain_body += f"{'#':<4} {'Company':<30} {'Signal Type':<30} {'Contact':<25} {'Email':<35}\n"
+            plain_body += "-" * 130 + "\n"
+            for idx, opp in enumerate(opportunities, start=1):
+                signal_name = SIGNAL_TYPES.get(opp.signal_type, "Unknown signal")
+                email_value = opp.email if opp.email else "Needs lookup"
+                person_value = opp.person if opp.person else "N/A"
+                company_short = (
+                    opp.company[:28] if len(opp.company) > 28 else opp.company
+                )
+                signal_short = (
+                    signal_name[:28] if len(signal_name) > 28 else signal_name
+                )
+                person_short = (
+                    person_value[:23] if len(person_value) > 23 else person_value
+                )
+                email_short = email_value[:33] if len(email_value) > 33 else email_value
+                plain_body += f"{idx:<4} {company_short:<30} {signal_short:<30} {person_short:<25} {email_short:<35}\n"
+                if opp.url:
+                    plain_body += f"     URL: {opp.url}\n"
+
+            plain_body += "\n---\nThis update was automatically generated by your HR Tech Lead Generation System."
+
+            msg.attach(MIMEText(plain_body, "plain"))
+            msg.attach(MIMEText(html_body, "html"))
+        else:
+            # Fallback to original format if no opportunities provided
+            body = f"""
+Hello Ariel,
+
+Here are the latest HR tech opportunities generated on {datetime.now().strftime('%Y-%m-%d at %H:%M')}.
 
 {report_content}
 
 ---
-This report was automatically generated by your HR Tech Lead Generation System.
-        """
-
-        msg.attach(MIMEText(body, "plain"))
+This update was automatically generated by your HR Tech Lead Generation System.
+            """
+            msg.attach(MIMEText(body, "plain"))
 
         # Attach CSV file if provided
         if csv_file_path and os.path.exists(csv_file_path):
@@ -812,44 +1130,37 @@ def main() -> None:
             logger.error("Failed to initialize services")
             sys.exit(1)
 
-        # Check if this is a weekly run
         is_weekly_run = os.getenv("WEEKLY_RUN", "false").lower() == "true"
         target_opportunities = int(os.getenv("TARGET_OPPORTUNITIES", "50"))
+        run_label = "weekly" if is_weekly_run else "daily"
 
-        if is_weekly_run:
-            logger.info(
-                f"Starting weekly run - Target: {target_opportunities} opportunities"
+        logger.info(
+            "Starting %s run - Target: %s opportunities",
+            run_label,
+            target_opportunities,
+        )
+
+        filtered_opportunities = run_full_lead_generation(target_opportunities)
+
+        # Only send email if not run from scheduler (scheduler will send its own email)
+        skip_email = os.getenv("SKIP_EMAIL", "false").lower() == "true"
+
+        if filtered_opportunities and not skip_email:
+            subject = (
+                f"Weekly HR Tech Lead Generation Report - {datetime.now().strftime('%Y-%m-%d')}"
+                if is_weekly_run
+                else "daily leads"
             )
-
-            all_opportunities = []
-
-            # Run all signals
-            for signal_id in range(1, 7):
-                logger.info(f"Running signal {signal_id}/6")
-                opportunities = run_signal(signal_id)
-                all_opportunities.extend(opportunities)
-                time.sleep(5)  # Brief pause between signals
-
-            # Filter and save results
-            filtered_opportunities = filter_results(all_opportunities)
-            timestamp = datetime.now().strftime("%Y%m%d_%H%M")
-            save_results(filtered_opportunities, f"all_signals_{timestamp}.csv")
-            save_results(filtered_opportunities, "all_signals.csv")
-
-            # Send email report
-            if filtered_opportunities:
-                report_content = f"Generated {len(filtered_opportunities)} opportunities across 6 signal types."
-                send_email_report(report_content, "all_signals.csv")
-
-            logger.info(
-                f"Weekly run completed: {len(filtered_opportunities)} opportunities generated"
+            report_content = summarize_opportunities(
+                filtered_opportunities, target_opportunities
             )
-
+            send_email_report(
+                report_content, "all_signals.csv", subject, filtered_opportunities
+            )
+        elif filtered_opportunities and skip_email:
+            logger.info("Skipping email send (handled by scheduler)")
         else:
-            # Quick test for development
-            opportunities = test_signal(1)
-            if opportunities:
-                logger.info(f"Test completed: {len(opportunities)} opportunities found")
+            logger.warning("No opportunities generated during this run")
 
     except Exception as e:
         logger.error(f"Workflow failed: {e}", exc_info=True)

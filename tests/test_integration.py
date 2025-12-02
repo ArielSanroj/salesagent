@@ -176,7 +176,11 @@ class TestIntegrationWorkflow(unittest.TestCase):
             llm_service = LLMService(credentials_manager)
 
             # Initialize search service
-            search_service = SearchService(requests.Session(), newsdata_key)
+            search_service = SearchService(
+                requests.Session(),
+                newsdata_key,
+                os.getenv("SERPAPI_KEY"),
+            )
 
             # Initialize scraping service
             scraping_service = ScrapingService(requests.Session())

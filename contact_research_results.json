@@ -1,0 +1,1625 @@
+[
+  {
+    "company": "Rally House",
+    "url": "https://www.postregister.com/businessreport/technology/rally-house-earns-brandon-hall-group-s-best-use-of-ai-for-talent-acquisition-award/article_4f9057ec-307d-5404-b904-218319b48e27.html",
+    "domain": "rallyhouse.com",
+    "contacts": [
+      {
+        "email": "klivingston@rallyhouse.com",
+        "first_name": "Kylie",
+        "last_name": "Livingston",
+        "title": null,
+        "confidence": 0,
+        "sources": [
+          {
+            "domain": "linkedin.com",
+            "uri": "https://www.google.com/search?q=site:linkedin.com%20kylie%20livingston%20rallyhouse",
+            "extracted_on": "2025-01-10",
+            "last_seen_on": "2025-01-10",
+            "still_on_page": true
+          }
+        ],
+        "verified": true,
+        "verification_score": 100
+      },
+      {
+        "email": "jmulkey@rallyhouse.com",
+        "first_name": "Jamie",
+        "last_name": "Mulkey",
+        "title": null,
+        "confidence": 0,
+        "sources": [
+          {
+            "domain": "linkedin.com",
+            "uri": "https://www.google.com/search?q=site:linkedin.com%20jamie%20mulkey%20rallyhouse",
+            "extracted_on": "2025-01-11",
+            "last_seen_on": "2025-09-29",
+            "still_on_page": true
+          }
+        ],
+        "verified": true,
+        "verification_score": 100
+      },
+      {
+        "email": "cfouss@rallyhouse.com",
+        "first_name": "Chad",
+        "last_name": "Fouss",
+        "title": null,
+        "confidence": 0,
+        "sources": [
+          {
+            "domain": "linkedin.com",
+            "uri": "https://www.google.com/search?q=site:linkedin.com%20chad%20fouss%20rallyhouse",
+            "extracted_on": "2025-01-11",
+            "last_seen_on": "2025-10-02",
+            "still_on_page": true
+          }
+        ],
+        "verified": true,
+        "verification_score": 100
+      },
+      {
+        "email": "bclawson@rallyhouse.com",
+        "first_name": "Brandon",
+        "last_name": "Clawson",
+        "title": null,
+        "confidence": 0,
+        "sources": [
+          {
+            "domain": "linkedin.com",
+            "uri": "https://www.google.com/search?q=site:linkedin.com%20brandon%20clawson%20rallyhouse",
+            "extracted_on": "2025-02-08",
+            "last_seen_on": "2025-10-09",
+            "still_on_page": true
+          }
+        ],
+        "verified": true,
+        "verification_score": 100
+      },
+      {
+        "email": "njones@rallyhouse.com",
+        "first_name": "Natalie",
+        "last_name": "Jones",
+        "title": null,
+        "confidence": 0,
+        "sources": [
+          {
+            "domain": "linkedin.com",
+            "uri": "https://www.google.com/search?q=site:linkedin.com%20natalie%20jones%20rallyhouse",
+            "extracted_on": "2025-08-15",
+            "last_seen_on": "2025-10-02",
+            "still_on_page": true
+          }
+        ],
+        "verified": true,
+        "verification_score": 100
+      },
+      {
+        "email": "jloper@rallyhouse.com",
+        "first_name": "Jacob",
+        "last_name": "Loper",
+        "title": null,
+        "confidence": 0,
+        "sources": [
+          {
+            "domain": "linkedin.com",
+            "uri": "https://www.google.com/search?q=site:linkedin.com%20jacob%20loper%20rallyhouse",
+            "extracted_on": "2025-01-09",
+            "last_seen_on": "2025-10-05",
+            "still_on_page": true
+          }
+        ],
+        "verified": true,
+        "verification_score": 100
+      },
+      {
+        "email": "dlickteig@rallyhouse.com",
+        "first_name": "Dane",
+        "last_name": "Lickteig",
+        "title": null,
+        "confidence": 0,
+        "sources": [
+          {
+            "domain": "linkedin.com",
+            "uri": "https://www.google.com/search?q=site:linkedin.com%20dane%20lickteig%20rallyhouse",
+            "extracted_on": "2025-07-17",
+            "last_seen_on": "2025-10-12",
+            "still_on_page": true
+          }
+        ],
+        "verified": true,
+        "verification_score": 100
+      },
+      {
+        "email": "mlunde@rallyhouse.com",
+        "first_name": "Matthew",
+        "last_name": "Lunde",
+        "title": null,
+        "confidence": 0,
+        "sources": [
+          {
+            "domain": "linkedin.com",
+            "uri": "https://www.google.com/search?q=site:linkedin.com%20matthew%20lunde%20rallyhouse",
+            "extracted_on": "2025-04-16",
+            "last_seen_on": "2025-10-01",
+            "still_on_page": true
+          }
+        ],
+        "verified": true,
+        "verification_score": 100
+      },
+      {
+        "email": "cmorris@rallyhouse.com",
+        "first_name": "Christopher",
+        "last_name": "Morris",
+        "title": null,
+        "confidence": 0,
+        "sources": [
+          {
+            "domain": "linkedin.com",
+            "uri": "https://www.google.com/search?q=site:linkedin.com%20christopher%20morris%20rallyhouse",
+            "extracted_on": "2025-01-11",
+            "last_seen_on": "2025-10-12",
+            "still_on_page": true
+          }
+        ],
+        "verified": true,
+        "verification_score": 100
+      },
+      {
+        "email": "jmurphy@rallyhouse.com",
+        "first_name": "John",
+        "last_name": "Murphy",
+        "title": null,
+        "confidence": 0,
+        "sources": [
+          {
+            "domain": "linkedin.com",
+            "uri": "https://www.google.com/search?q=site:linkedin.com%20john%20murphy%20rallyhouse",
+            "extracted_on": "2025-01-11",
+            "last_seen_on": "2025-10-06",
+            "still_on_page": true
+          }
+        ],
+        "verified": true,
+        "verification_score": 100
+      },
+      {
+        "email": "klivingston@rallyhouse.com",
+        "first_name": "Kylie",
+        "last_name": "Livingston",
+        "title": null,
+        "confidence": 0,
+        "sources": [
+          {
+            "domain": "linkedin.com",
+            "uri": "https://www.google.com/search?q=site:linkedin.com%20kylie%20livingston%20rallyhouse",
+            "extracted_on": "2025-01-10",
+            "last_seen_on": "2025-01-10",
+            "still_on_page": true
+          }
+        ],
+        "verified": true,
+        "verification_score": 100
+      },
+      {
+        "email": "jmulkey@rallyhouse.com",
+        "first_name": "Jamie",
+        "last_name": "Mulkey",
+        "title": null,
+        "confidence": 0,
+        "sources": [
+          {
+            "domain": "linkedin.com",
+            "uri": "https://www.google.com/search?q=site:linkedin.com%20jamie%20mulkey%20rallyhouse",
+            "extracted_on": "2025-01-11",
+            "last_seen_on": "2025-09-29",
+            "still_on_page": true
+          }
+        ],
+        "verified": true,
+        "verification_score": 100
+      },
+      {
+        "email": "cfouss@rallyhouse.com",
+        "first_name": "Chad",
+        "last_name": "Fouss",
+        "title": null,
+        "confidence": 0,
+        "sources": [
+          {
+            "domain": "linkedin.com",
+            "uri": "https://www.google.com/search?q=site:linkedin.com%20chad%20fouss%20rallyhouse",
+            "extracted_on": "2025-01-11",
+            "last_seen_on": "2025-10-02",
+            "still_on_page": true
+          }
+        ],
+        "verified": true,
+        "verification_score": 100
+      },
+      {
+        "email": "bclawson@rallyhouse.com",
+        "first_name": "Brandon",
+        "last_name": "Clawson",
+        "title": null,
+        "confidence": 0,
+        "sources": [
+          {
+            "domain": "linkedin.com",
+            "uri": "https://www.google.com/search?q=site:linkedin.com%20brandon%20clawson%20rallyhouse",
+            "extracted_on": "2025-02-08",
+            "last_seen_on": "2025-10-09",
+            "still_on_page": true
+          }
+        ],
+        "verified": true,
+        "verification_score": 100
+      },
+      {
+        "email": "njones@rallyhouse.com",
+        "first_name": "Natalie",
+        "last_name": "Jones",
+        "title": null,
+        "confidence": 0,
+        "sources": [
+          {
+            "domain": "linkedin.com",
+            "uri": "https://www.google.com/search?q=site:linkedin.com%20natalie%20jones%20rallyhouse",
+            "extracted_on": "2025-08-15",
+            "last_seen_on": "2025-10-02",
+            "still_on_page": true
+          }
+        ],
+        "verified": true,
+        "verification_score": 100
+      },
+      {
+        "email": "jloper@rallyhouse.com",
+        "first_name": "Jacob",
+        "last_name": "Loper",
+        "title": null,
+        "confidence": 0,
+        "sources": [
+          {
+            "domain": "linkedin.com",
+            "uri": "https://www.google.com/search?q=site:linkedin.com%20jacob%20loper%20rallyhouse",
+            "extracted_on": "2025-01-09",
+            "last_seen_on": "2025-10-05",
+            "still_on_page": true
+          }
+        ],
+        "verified": true,
+        "verification_score": 100
+      },
+      {
+        "email": "dlickteig@rallyhouse.com",
+        "first_name": "Dane",
+        "last_name": "Lickteig",
+        "title": null,
+        "confidence": 0,
+        "sources": [
+          {
+            "domain": "linkedin.com",
+            "uri": "https://www.google.com/search?q=site:linkedin.com%20dane%20lickteig%20rallyhouse",
+            "extracted_on": "2025-07-17",
+            "last_seen_on": "2025-10-12",
+            "still_on_page": true
+          }
+        ],
+        "verified": true,
+        "verification_score": 100
+      },
+      {
+        "email": "mlunde@rallyhouse.com",
+        "first_name": "Matthew",
+        "last_name": "Lunde",
+        "title": null,
+        "confidence": 0,
+        "sources": [
+          {
+            "domain": "linkedin.com",
+            "uri": "https://www.google.com/search?q=site:linkedin.com%20matthew%20lunde%20rallyhouse",
+            "extracted_on": "2025-04-16",
+            "last_seen_on": "2025-10-01",
+            "still_on_page": true
+          }
+        ],
+        "verified": true,
+        "verification_score": 100
+      },
+      {
+        "email": "cmorris@rallyhouse.com",
+        "first_name": "Christopher",
+        "last_name": "Morris",
+        "title": null,
+        "confidence": 0,
+        "sources": [
+          {
+            "domain": "linkedin.com",
+            "uri": "https://www.google.com/search?q=site:linkedin.com%20christopher%20morris%20rallyhouse",
+            "extracted_on": "2025-01-11",
+            "last_seen_on": "2025-10-12",
+            "still_on_page": true
+          }
+        ],
+        "verified": true,
+        "verification_score": 100
+      },
+      {
+        "email": "jmurphy@rallyhouse.com",
+        "first_name": "John",
+        "last_name": "Murphy",
+        "title": null,
+        "confidence": 0,
+        "sources": [
+          {
+            "domain": "linkedin.com",
+            "uri": "https://www.google.com/search?q=site:linkedin.com%20john%20murphy%20rallyhouse",
+            "extracted_on": "2025-01-11",
+            "last_seen_on": "2025-10-06",
+            "still_on_page": true
+          }
+        ],
+        "verified": true,
+        "verification_score": 100
+      },
+      {
+        "email": "klivingston@rallyhouse.com",
+        "first_name": "Kylie",
+        "last_name": "Livingston",
+        "title": null,
+        "confidence": 0,
+        "sources": [
+          {
+            "domain": "linkedin.com",
+            "uri": "https://www.google.com/search?q=site:linkedin.com%20kylie%20livingston%20rallyhouse",
+            "extracted_on": "2025-01-10",
+            "last_seen_on": "2025-01-10",
+            "still_on_page": true
+          }
+        ],
+        "verified": true,
+        "verification_score": 100
+      },
+      {
+        "email": "jmulkey@rallyhouse.com",
+        "first_name": "Jamie",
+        "last_name": "Mulkey",
+        "title": null,
+        "confidence": 0,
+        "sources": [
+          {
+            "domain": "linkedin.com",
+            "uri": "https://www.google.com/search?q=site:linkedin.com%20jamie%20mulkey%20rallyhouse",
+            "extracted_on": "2025-01-11",
+            "last_seen_on": "2025-09-29",
+            "still_on_page": true
+          }
+        ],
+        "verified": true,
+        "verification_score": 100
+      },
+      {
+        "email": "cfouss@rallyhouse.com",
+        "first_name": "Chad",
+        "last_name": "Fouss",
+        "title": null,
+        "confidence": 0,
+        "sources": [
+          {
+            "domain": "linkedin.com",
+            "uri": "https://www.google.com/search?q=site:linkedin.com%20chad%20fouss%20rallyhouse",
+            "extracted_on": "2025-01-11",
+            "last_seen_on": "2025-10-02",
+            "still_on_page": true
+          }
+        ],
+        "verified": true,
+        "verification_score": 100
+      },
+      {
+        "email": "bclawson@rallyhouse.com",
+        "first_name": "Brandon",
+        "last_name": "Clawson",
+        "title": null,
+        "confidence": 0,
+        "sources": [
+          {
+            "domain": "linkedin.com",
+            "uri": "https://www.google.com/search?q=site:linkedin.com%20brandon%20clawson%20rallyhouse",
+            "extracted_on": "2025-02-08",
+            "last_seen_on": "2025-10-09",
+            "still_on_page": true
+          }
+        ],
+        "verified": true,
+        "verification_score": 100
+      },
+      {
+        "email": "njones@rallyhouse.com",
+        "first_name": "Natalie",
+        "last_name": "Jones",
+        "title": null,
+        "confidence": 0,
+        "sources": [
+          {
+            "domain": "linkedin.com",
+            "uri": "https://www.google.com/search?q=site:linkedin.com%20natalie%20jones%20rallyhouse",
+            "extracted_on": "2025-08-15",
+            "last_seen_on": "2025-10-02",
+            "still_on_page": true
+          }
+        ],
+        "verified": true,
+        "verification_score": 100
+      },
+      {
+        "email": "jloper@rallyhouse.com",
+        "first_name": "Jacob",
+        "last_name": "Loper",
+        "title": null,
+        "confidence": 0,
+        "sources": [
+          {
+            "domain": "linkedin.com",
+            "uri": "https://www.google.com/search?q=site:linkedin.com%20jacob%20loper%20rallyhouse",
+            "extracted_on": "2025-01-09",
+            "last_seen_on": "2025-10-05",
+            "still_on_page": true
+          }
+        ],
+        "verified": true,
+        "verification_score": 100
+      },
+      {
+        "email": "dlickteig@rallyhouse.com",
+        "first_name": "Dane",
+        "last_name": "Lickteig",
+        "title": null,
+        "confidence": 0,
+        "sources": [
+          {
+            "domain": "linkedin.com",
+            "uri": "https://www.google.com/search?q=site:linkedin.com%20dane%20lickteig%20rallyhouse",
+            "extracted_on": "2025-07-17",
+            "last_seen_on": "2025-10-12",
+            "still_on_page": true
+          }
+        ],
+        "verified": true,
+        "verification_score": 100
+      },
+      {
+        "email": "mlunde@rallyhouse.com",
+        "first_name": "Matthew",
+        "last_name": "Lunde",
+        "title": null,
+        "confidence": 0,
+        "sources": [
+          {
+            "domain": "linkedin.com",
+            "uri": "https://www.google.com/search?q=site:linkedin.com%20matthew%20lunde%20rallyhouse",
+            "extracted_on": "2025-04-16",
+            "last_seen_on": "2025-10-01",
+            "still_on_page": true
+          }
+        ],
+        "verified": true,
+        "verification_score": 100
+      },
+      {
+        "email": "cmorris@rallyhouse.com",
+        "first_name": "Christopher",
+        "last_name": "Morris",
+        "title": null,
+        "confidence": 0,
+        "sources": [
+          {
+            "domain": "linkedin.com",
+            "uri": "https://www.google.com/search?q=site:linkedin.com%20christopher%20morris%20rallyhouse",
+            "extracted_on": "2025-01-11",
+            "last_seen_on": "2025-10-12",
+            "still_on_page": true
+          }
+        ],
+        "verified": true,
+        "verification_score": 100
+      },
+      {
+        "email": "jmurphy@rallyhouse.com",
+        "first_name": "John",
+        "last_name": "Murphy",
+        "title": null,
+        "confidence": 0,
+        "sources": [
+          {
+            "domain": "linkedin.com",
+            "uri": "https://www.google.com/search?q=site:linkedin.com%20john%20murphy%20rallyhouse",
+            "extracted_on": "2025-01-11",
+            "last_seen_on": "2025-10-06",
+            "still_on_page": true
+          }
+        ],
+        "verified": true,
+        "verification_score": 100
+      }
+    ]
+  },
+  {
+    "company": "McLean & Company",
+    "url": "https://www.prnewswire.com/news-releases/charting-the-future-of-hr-leadership-mclean--company-introduces-chro-playbook-302602700.html",
+    "domain": "mcleancompany.com",
+    "contacts": []
+  },
+  {
+    "company": "Smartstream",
+    "url": "https://ffnews.com/newsarticle/hiring/smartstream-strengthens-executive-leadership-team-with-key-appointments/",
+    "domain": "smartstream.com",
+    "contacts": []
+  },
+  {
+    "company": "Deloitte",
+    "url": "https://www.deloitte.com/us/en/services/consulting/articles/latest-hr-technology-trends-influencing-the-way-we-work.html",
+    "domain": "deloitte.com",
+    "contacts": [
+      {
+        "email": "narianaick@deloitte.com",
+        "first_name": "Nikhil",
+        "last_name": "Arianaick",
+        "title": null,
+        "confidence": 0,
+        "sources": [
+          {
+            "domain": "linkedin.com",
+            "uri": "https://www.google.com/search?q=site:linkedin.com%20nikhil%20arianaick%20deloitte",
+            "extracted_on": "2025-09-28",
+            "last_seen_on": "2025-10-07",
+            "still_on_page": true
+          }
+        ],
+        "verified": true,
+        "verification_score": 100
+      },
+      {
+        "email": "mpreston@deloitte.com",
+        "first_name": "Mary",
+        "last_name": "Preston",
+        "title": null,
+        "confidence": 0,
+        "sources": [
+          {
+            "domain": "linkedin.com",
+            "uri": "https://www.google.com/search?q=site:linkedin.com%20mary%20preston%20deloitte",
+            "extracted_on": "2025-08-21",
+            "last_seen_on": "2025-10-05",
+            "still_on_page": true
+          }
+        ],
+        "verified": true,
+        "verification_score": 100
+      },
+      {
+        "email": "mchandrashekar@deloitte.com",
+        "first_name": "Mekhala",
+        "last_name": "Chandrashekar",
+        "title": null,
+        "confidence": 0,
+        "sources": [
+          {
+            "domain": "linkedin.com",
+            "uri": "https://www.google.com/search?q=site:linkedin.com%20mekhala%20chandrashekar%20deloitte",
+            "extracted_on": "2025-08-21",
+            "last_seen_on": "2025-10-03",
+            "still_on_page": true
+          }
+        ],
+        "verified": true,
+        "verification_score": 100
+      },
+      {
+        "email": "yohankim@deloitte.com",
+        "first_name": "Yohan",
+        "last_name": "Kim",
+        "title": null,
+        "confidence": 0,
+        "sources": [
+          {
+            "domain": "linkedin.com",
+            "uri": "https://www.google.com/search?q=site:linkedin.com%20yohan%20kim%20deloitte",
+            "extracted_on": "2025-08-21",
+            "last_seen_on": "2025-10-10",
+            "still_on_page": true
+          }
+        ],
+        "verified": true,
+        "verification_score": 100
+      },
+      {
+        "email": "kiwai@deloitte.com",
+        "first_name": "Koichi",
+        "last_name": "Iwai",
+        "title": null,
+        "confidence": 0,
+        "sources": [
+          {
+            "domain": "linkedin.com",
+            "uri": "https://www.google.com/search?q=site:linkedin.com%20koichi%20iwai%20deloitte",
+            "extracted_on": "2025-08-20",
+            "last_seen_on": "2025-10-03",
+            "still_on_page": true
+          }
+        ],
+        "verified": true,
+        "verification_score": 100
+      },
+      {
+        "email": "bharikumar@deloitte.com",
+        "first_name": "Bharathi",
+        "last_name": "Harikumar",
+        "title": null,
+        "confidence": 0,
+        "sources": [
+          {
+            "domain": "linkedin.com",
+            "uri": "https://www.google.com/search?q=site:linkedin.com%20bharathi%20harikumar%20deloitte",
+            "extracted_on": "2025-08-20",
+            "last_seen_on": "2025-10-06",
+            "still_on_page": true
+          }
+        ],
+        "verified": true,
+        "verification_score": 100
+      },
+      {
+        "email": "nfabros@deloitte.com",
+        "first_name": "Nhu",
+        "last_name": "Fabros",
+        "title": null,
+        "confidence": 0,
+        "sources": [
+          {
+            "domain": "linkedin.com",
+            "uri": "https://www.google.com/search?q=site:linkedin.com%20nhu%20fabros%20deloitte",
+            "extracted_on": "2025-08-19",
+            "last_seen_on": "2025-10-01",
+            "still_on_page": true
+          }
+        ],
+        "verified": true,
+        "verification_score": 100
+      },
+      {
+        "email": "stummala@deloitte.com",
+        "first_name": "Susrenitha",
+        "last_name": "Tummala",
+        "title": null,
+        "confidence": 0,
+        "sources": [
+          {
+            "domain": "linkedin.com",
+            "uri": "https://www.google.com/search?q=site:linkedin.com%20susrenitha%20tummala%20deloitte",
+            "extracted_on": "2025-08-19",
+            "last_seen_on": "2025-09-30",
+            "still_on_page": true
+          }
+        ],
+        "verified": true,
+        "verification_score": 100
+      },
+      {
+        "email": "moommen@deloitte.com",
+        "first_name": "Mary",
+        "last_name": "Oommen",
+        "title": null,
+        "confidence": 0,
+        "sources": [
+          {
+            "domain": "linkedin.com",
+            "uri": "https://www.google.com/search?q=site:linkedin.com%20mary%20oommen%20deloitte",
+            "extracted_on": "2025-08-19",
+            "last_seen_on": "2025-09-30",
+            "still_on_page": true
+          }
+        ],
+        "verified": true,
+        "verification_score": 100
+      },
+      {
+        "email": "mmasshardt@deloitte.com",
+        "first_name": "Mike",
+        "last_name": "Masshardt",
+        "title": null,
+        "confidence": 0,
+        "sources": [
+          {
+            "domain": "linkedin.com",
+            "uri": "https://www.google.com/search?q=site:linkedin.com%20mike%20masshardt%20deloitte",
+            "extracted_on": "2025-08-19",
+            "last_seen_on": "2025-10-04",
+            "still_on_page": true
+          }
+        ],
+        "verified": true,
+        "verification_score": 100
+      },
+      {
+        "email": "narianaick@deloitte.com",
+        "first_name": "Nikhil",
+        "last_name": "Arianaick",
+        "title": null,
+        "confidence": 0,
+        "sources": [
+          {
+            "domain": "linkedin.com",
+            "uri": "https://www.google.com/search?q=site:linkedin.com%20nikhil%20arianaick%20deloitte",
+            "extracted_on": "2025-09-28",
+            "last_seen_on": "2025-10-07",
+            "still_on_page": true
+          }
+        ],
+        "verified": true,
+        "verification_score": 100
+      },
+      {
+        "email": "mpreston@deloitte.com",
+        "first_name": "Mary",
+        "last_name": "Preston",
+        "title": null,
+        "confidence": 0,
+        "sources": [
+          {
+            "domain": "linkedin.com",
+            "uri": "https://www.google.com/search?q=site:linkedin.com%20mary%20preston%20deloitte",
+            "extracted_on": "2025-08-21",
+            "last_seen_on": "2025-10-05",
+            "still_on_page": true
+          }
+        ],
+        "verified": true,
+        "verification_score": 100
+      },
+      {
+        "email": "mchandrashekar@deloitte.com",
+        "first_name": "Mekhala",
+        "last_name": "Chandrashekar",
+        "title": null,
+        "confidence": 0,
+        "sources": [
+          {
+            "domain": "linkedin.com",
+            "uri": "https://www.google.com/search?q=site:linkedin.com%20mekhala%20chandrashekar%20deloitte",
+            "extracted_on": "2025-08-21",
+            "last_seen_on": "2025-10-03",
+            "still_on_page": true
+          }
+        ],
+        "verified": true,
+        "verification_score": 100
+      },
+      {
+        "email": "yohankim@deloitte.com",
+        "first_name": "Yohan",
+        "last_name": "Kim",
+        "title": null,
+        "confidence": 0,
+        "sources": [
+          {
+            "domain": "linkedin.com",
+            "uri": "https://www.google.com/search?q=site:linkedin.com%20yohan%20kim%20deloitte",
+            "extracted_on": "2025-08-21",
+            "last_seen_on": "2025-10-10",
+            "still_on_page": true
+          }
+        ],
+        "verified": true,
+        "verification_score": 100
+      },
+      {
+        "email": "kiwai@deloitte.com",
+        "first_name": "Koichi",
+        "last_name": "Iwai",
+        "title": null,
+        "confidence": 0,
+        "sources": [
+          {
+            "domain": "linkedin.com",
+            "uri": "https://www.google.com/search?q=site:linkedin.com%20koichi%20iwai%20deloitte",
+            "extracted_on": "2025-08-20",
+            "last_seen_on": "2025-10-03",
+            "still_on_page": true
+          }
+        ],
+        "verified": true,
+        "verification_score": 100
+      },
+      {
+        "email": "bharikumar@deloitte.com",
+        "first_name": "Bharathi",
+        "last_name": "Harikumar",
+        "title": null,
+        "confidence": 0,
+        "sources": [
+          {
+            "domain": "linkedin.com",
+            "uri": "https://www.google.com/search?q=site:linkedin.com%20bharathi%20harikumar%20deloitte",
+            "extracted_on": "2025-08-20",
+            "last_seen_on": "2025-10-06",
+            "still_on_page": true
+          }
+        ],
+        "verified": true,
+        "verification_score": 100
+      },
+      {
+        "email": "nfabros@deloitte.com",
+        "first_name": "Nhu",
+        "last_name": "Fabros",
+        "title": null,
+        "confidence": 0,
+        "sources": [
+          {
+            "domain": "linkedin.com",
+            "uri": "https://www.google.com/search?q=site:linkedin.com%20nhu%20fabros%20deloitte",
+            "extracted_on": "2025-08-19",
+            "last_seen_on": "2025-10-01",
+            "still_on_page": true
+          }
+        ],
+        "verified": true,
+        "verification_score": 100
+      },
+      {
+        "email": "stummala@deloitte.com",
+        "first_name": "Susrenitha",
+        "last_name": "Tummala",
+        "title": null,
+        "confidence": 0,
+        "sources": [
+          {
+            "domain": "linkedin.com",
+            "uri": "https://www.google.com/search?q=site:linkedin.com%20susrenitha%20tummala%20deloitte",
+            "extracted_on": "2025-08-19",
+            "last_seen_on": "2025-09-30",
+            "still_on_page": true
+          }
+        ],
+        "verified": true,
+        "verification_score": 100
+      },
+      {
+        "email": "moommen@deloitte.com",
+        "first_name": "Mary",
+        "last_name": "Oommen",
+        "title": null,
+        "confidence": 0,
+        "sources": [
+          {
+            "domain": "linkedin.com",
+            "uri": "https://www.google.com/search?q=site:linkedin.com%20mary%20oommen%20deloitte",
+            "extracted_on": "2025-08-19",
+            "last_seen_on": "2025-09-30",
+            "still_on_page": true
+          }
+        ],
+        "verified": true,
+        "verification_score": 100
+      },
+      {
+        "email": "mmasshardt@deloitte.com",
+        "first_name": "Mike",
+        "last_name": "Masshardt",
+        "title": null,
+        "confidence": 0,
+        "sources": [
+          {
+            "domain": "linkedin.com",
+            "uri": "https://www.google.com/search?q=site:linkedin.com%20mike%20masshardt%20deloitte",
+            "extracted_on": "2025-08-19",
+            "last_seen_on": "2025-10-04",
+            "still_on_page": true
+          }
+        ],
+        "verified": true,
+        "verification_score": 100
+      },
+      {
+        "email": "narianaick@deloitte.com",
+        "first_name": "Nikhil",
+        "last_name": "Arianaick",
+        "title": null,
+        "confidence": 0,
+        "sources": [
+          {
+            "domain": "linkedin.com",
+            "uri": "https://www.google.com/search?q=site:linkedin.com%20nikhil%20arianaick%20deloitte",
+            "extracted_on": "2025-09-28",
+            "last_seen_on": "2025-10-07",
+            "still_on_page": true
+          }
+        ],
+        "verified": true,
+        "verification_score": 100
+      },
+      {
+        "email": "mpreston@deloitte.com",
+        "first_name": "Mary",
+        "last_name": "Preston",
+        "title": null,
+        "confidence": 0,
+        "sources": [
+          {
+            "domain": "linkedin.com",
+            "uri": "https://www.google.com/search?q=site:linkedin.com%20mary%20preston%20deloitte",
+            "extracted_on": "2025-08-21",
+            "last_seen_on": "2025-10-05",
+            "still_on_page": true
+          }
+        ],
+        "verified": true,
+        "verification_score": 100
+      },
+      {
+        "email": "mchandrashekar@deloitte.com",
+        "first_name": "Mekhala",
+        "last_name": "Chandrashekar",
+        "title": null,
+        "confidence": 0,
+        "sources": [
+          {
+            "domain": "linkedin.com",
+            "uri": "https://www.google.com/search?q=site:linkedin.com%20mekhala%20chandrashekar%20deloitte",
+            "extracted_on": "2025-08-21",
+            "last_seen_on": "2025-10-03",
+            "still_on_page": true
+          }
+        ],
+        "verified": true,
+        "verification_score": 100
+      },
+      {
+        "email": "yohankim@deloitte.com",
+        "first_name": "Yohan",
+        "last_name": "Kim",
+        "title": null,
+        "confidence": 0,
+        "sources": [
+          {
+            "domain": "linkedin.com",
+            "uri": "https://www.google.com/search?q=site:linkedin.com%20yohan%20kim%20deloitte",
+            "extracted_on": "2025-08-21",
+            "last_seen_on": "2025-10-10",
+            "still_on_page": true
+          }
+        ],
+        "verified": true,
+        "verification_score": 100
+      },
+      {
+        "email": "kiwai@deloitte.com",
+        "first_name": "Koichi",
+        "last_name": "Iwai",
+        "title": null,
+        "confidence": 0,
+        "sources": [
+          {
+            "domain": "linkedin.com",
+            "uri": "https://www.google.com/search?q=site:linkedin.com%20koichi%20iwai%20deloitte",
+            "extracted_on": "2025-08-20",
+            "last_seen_on": "2025-10-03",
+            "still_on_page": true
+          }
+        ],
+        "verified": true,
+        "verification_score": 100
+      },
+      {
+        "email": "bharikumar@deloitte.com",
+        "first_name": "Bharathi",
+        "last_name": "Harikumar",
+        "title": null,
+        "confidence": 0,
+        "sources": [
+          {
+            "domain": "linkedin.com",
+            "uri": "https://www.google.com/search?q=site:linkedin.com%20bharathi%20harikumar%20deloitte",
+            "extracted_on": "2025-08-20",
+            "last_seen_on": "2025-10-06",
+            "still_on_page": true
+          }
+        ],
+        "verified": true,
+        "verification_score": 100
+      },
+      {
+        "email": "nfabros@deloitte.com",
+        "first_name": "Nhu",
+        "last_name": "Fabros",
+        "title": null,
+        "confidence": 0,
+        "sources": [
+          {
+            "domain": "linkedin.com",
+            "uri": "https://www.google.com/search?q=site:linkedin.com%20nhu%20fabros%20deloitte",
+            "extracted_on": "2025-08-19",
+            "last_seen_on": "2025-10-01",
+            "still_on_page": true
+          }
+        ],
+        "verified": true,
+        "verification_score": 100
+      },
+      {
+        "email": "stummala@deloitte.com",
+        "first_name": "Susrenitha",
+        "last_name": "Tummala",
+        "title": null,
+        "confidence": 0,
+        "sources": [
+          {
+            "domain": "linkedin.com",
+            "uri": "https://www.google.com/search?q=site:linkedin.com%20susrenitha%20tummala%20deloitte",
+            "extracted_on": "2025-08-19",
+            "last_seen_on": "2025-09-30",
+            "still_on_page": true
+          }
+        ],
+        "verified": true,
+        "verification_score": 100
+      },
+      {
+        "email": "moommen@deloitte.com",
+        "first_name": "Mary",
+        "last_name": "Oommen",
+        "title": null,
+        "confidence": 0,
+        "sources": [
+          {
+            "domain": "linkedin.com",
+            "uri": "https://www.google.com/search?q=site:linkedin.com%20mary%20oommen%20deloitte",
+            "extracted_on": "2025-08-19",
+            "last_seen_on": "2025-09-30",
+            "still_on_page": true
+          }
+        ],
+        "verified": true,
+        "verification_score": 100
+      },
+      {
+        "email": "mmasshardt@deloitte.com",
+        "first_name": "Mike",
+        "last_name": "Masshardt",
+        "title": null,
+        "confidence": 0,
+        "sources": [
+          {
+            "domain": "linkedin.com",
+            "uri": "https://www.google.com/search?q=site:linkedin.com%20mike%20masshardt%20deloitte",
+            "extracted_on": "2025-08-19",
+            "last_seen_on": "2025-10-04",
+            "still_on_page": true
+          }
+        ],
+        "verified": true,
+        "verification_score": 100
+      }
+    ]
+  },
+  {
+    "company": "Mercer",
+    "url": "https://www.mercer.com/insights/people-strategy/hr-transformation/hr-tech-confidence-check/",
+    "domain": "mercer.com",
+    "contacts": [
+      {
+        "email": "adam.luistro@mercer.com",
+        "first_name": "Adam",
+        "last_name": "Luistro",
+        "title": null,
+        "confidence": 0,
+        "sources": [
+          {
+            "domain": "linkedin.com",
+            "uri": "https://www.google.com/search?q=site:linkedin.com%20adam%20luistro%20mercer",
+            "extracted_on": "2025-08-19",
+            "last_seen_on": "2025-10-07",
+            "still_on_page": true
+          }
+        ],
+        "verified": false
+      },
+      {
+        "email": "tim.ridge@mercer.com",
+        "first_name": "Tim",
+        "last_name": "Ridge",
+        "title": null,
+        "confidence": 0,
+        "sources": [
+          {
+            "domain": "linkedin.com",
+            "uri": "https://www.google.com/search?q=site:linkedin.com%20tim%20ridge%20mercer",
+            "extracted_on": "2025-08-07",
+            "last_seen_on": "2025-10-13",
+            "still_on_page": true
+          }
+        ],
+        "verified": false
+      },
+      {
+        "email": "hamad.ibrahim@mercer.com",
+        "first_name": "Hamad",
+        "last_name": "Ibrahim",
+        "title": null,
+        "confidence": 0,
+        "sources": [
+          {
+            "domain": "linkedin.com",
+            "uri": "https://www.google.com/search?q=site:linkedin.com%20hamad%20ibrahim%20mercer",
+            "extracted_on": "2025-08-07",
+            "last_seen_on": "2025-10-07",
+            "still_on_page": true
+          }
+        ],
+        "verified": false
+      },
+      {
+        "email": "thomas.richland@mercer.com",
+        "first_name": "Thomas",
+        "last_name": "Richland",
+        "title": null,
+        "confidence": 0,
+        "sources": [
+          {
+            "domain": "linkedin.com",
+            "uri": "https://www.google.com/search?q=site:linkedin.com%20thomas%20richland%20mercer",
+            "extracted_on": "2025-01-08",
+            "last_seen_on": "2025-10-04",
+            "still_on_page": true
+          }
+        ],
+        "verified": false
+      },
+      {
+        "email": "jack.chao@mercer.com",
+        "first_name": "Jack",
+        "last_name": "Chao",
+        "title": null,
+        "confidence": 0,
+        "sources": [
+          {
+            "domain": "linkedin.com",
+            "uri": "https://www.google.com/search?q=site:linkedin.com%20jack%20chao%20mercer",
+            "extracted_on": "2025-01-08",
+            "last_seen_on": "2025-10-04",
+            "still_on_page": true
+          }
+        ],
+        "verified": false
+      },
+      {
+        "email": "justyna.mcneive@mercer.com",
+        "first_name": "Justyna",
+        "last_name": "Mcneive",
+        "title": null,
+        "confidence": 0,
+        "sources": [
+          {
+            "domain": "linkedin.com",
+            "uri": "https://www.google.com/search?q=site:linkedin.com%20justyna%20mcneive%20mercer",
+            "extracted_on": "2025-02-12",
+            "last_seen_on": "2025-10-08",
+            "still_on_page": true
+          }
+        ],
+        "verified": false
+      },
+      {
+        "email": "will.leh@mercer.com",
+        "first_name": "Will",
+        "last_name": "Leh",
+        "title": null,
+        "confidence": 0,
+        "sources": [
+          {
+            "domain": "linkedin.com",
+            "uri": "https://www.google.com/search?q=site:linkedin.com%20will%20leh%20mercer",
+            "extracted_on": "2025-01-08",
+            "last_seen_on": "2025-01-08",
+            "still_on_page": true
+          }
+        ],
+        "verified": false
+      },
+      {
+        "email": "bernabe.astorqui@mercer.com",
+        "first_name": "Bernabé",
+        "last_name": "Astorqui",
+        "title": null,
+        "confidence": 0,
+        "sources": [
+          {
+            "domain": "linkedin.com",
+            "uri": "https://www.google.com/search?q=site:linkedin.com%20bernab%C3%A9%20astorqui%20mercer",
+            "extracted_on": "2025-01-08",
+            "last_seen_on": "2025-06-25",
+            "still_on_page": true
+          }
+        ],
+        "verified": false
+      },
+      {
+        "email": "john.fiorentino@mercer.com",
+        "first_name": "John",
+        "last_name": "Fiorentino",
+        "title": null,
+        "confidence": 0,
+        "sources": [
+          {
+            "domain": "linkedin.com",
+            "uri": "https://www.google.com/search?q=site:linkedin.com%20john%20fiorentino%20mercer",
+            "extracted_on": "2025-01-08",
+            "last_seen_on": "2025-09-30",
+            "still_on_page": true
+          }
+        ],
+        "verified": false
+      },
+      {
+        "email": "david.diaz@mercer.com",
+        "first_name": "David",
+        "last_name": "Díaz",
+        "title": null,
+        "confidence": 0,
+        "sources": [
+          {
+            "domain": "linkedin.com",
+            "uri": "https://www.google.com/search?q=site:linkedin.com%20david%20d%C3%ADaz%20mercer",
+            "extracted_on": "2025-01-08",
+            "last_seen_on": "2025-10-09",
+            "still_on_page": true
+          }
+        ],
+        "verified": false
+      },
+      {
+        "email": "adam.luistro@mercer.com",
+        "first_name": "Adam",
+        "last_name": "Luistro",
+        "title": null,
+        "confidence": 0,
+        "sources": [
+          {
+            "domain": "linkedin.com",
+            "uri": "https://www.google.com/search?q=site:linkedin.com%20adam%20luistro%20mercer",
+            "extracted_on": "2025-08-19",
+            "last_seen_on": "2025-10-07",
+            "still_on_page": true
+          }
+        ],
+        "verified": false
+      },
+      {
+        "email": "tim.ridge@mercer.com",
+        "first_name": "Tim",
+        "last_name": "Ridge",
+        "title": null,
+        "confidence": 0,
+        "sources": [
+          {
+            "domain": "linkedin.com",
+            "uri": "https://www.google.com/search?q=site:linkedin.com%20tim%20ridge%20mercer",
+            "extracted_on": "2025-08-07",
+            "last_seen_on": "2025-10-13",
+            "still_on_page": true
+          }
+        ],
+        "verified": false
+      },
+      {
+        "email": "hamad.ibrahim@mercer.com",
+        "first_name": "Hamad",
+        "last_name": "Ibrahim",
+        "title": null,
+        "confidence": 0,
+        "sources": [
+          {
+            "domain": "linkedin.com",
+            "uri": "https://www.google.com/search?q=site:linkedin.com%20hamad%20ibrahim%20mercer",
+            "extracted_on": "2025-08-07",
+            "last_seen_on": "2025-10-07",
+            "still_on_page": true
+          }
+        ],
+        "verified": false
+      },
+      {
+        "email": "thomas.richland@mercer.com",
+        "first_name": "Thomas",
+        "last_name": "Richland",
+        "title": null,
+        "confidence": 0,
+        "sources": [
+          {
+            "domain": "linkedin.com",
+            "uri": "https://www.google.com/search?q=site:linkedin.com%20thomas%20richland%20mercer",
+            "extracted_on": "2025-01-08",
+            "last_seen_on": "2025-10-04",
+            "still_on_page": true
+          }
+        ],
+        "verified": false
+      },
+      {
+        "email": "jack.chao@mercer.com",
+        "first_name": "Jack",
+        "last_name": "Chao",
+        "title": null,
+        "confidence": 0,
+        "sources": [
+          {
+            "domain": "linkedin.com",
+            "uri": "https://www.google.com/search?q=site:linkedin.com%20jack%20chao%20mercer",
+            "extracted_on": "2025-01-08",
+            "last_seen_on": "2025-10-04",
+            "still_on_page": true
+          }
+        ],
+        "verified": false
+      },
+      {
+        "email": "justyna.mcneive@mercer.com",
+        "first_name": "Justyna",
+        "last_name": "Mcneive",
+        "title": null,
+        "confidence": 0,
+        "sources": [
+          {
+            "domain": "linkedin.com",
+            "uri": "https://www.google.com/search?q=site:linkedin.com%20justyna%20mcneive%20mercer",
+            "extracted_on": "2025-02-12",
+            "last_seen_on": "2025-10-08",
+            "still_on_page": true
+          }
+        ],
+        "verified": false
+      },
+      {
+        "email": "will.leh@mercer.com",
+        "first_name": "Will",
+        "last_name": "Leh",
+        "title": null,
+        "confidence": 0,
+        "sources": [
+          {
+            "domain": "linkedin.com",
+            "uri": "https://www.google.com/search?q=site:linkedin.com%20will%20leh%20mercer",
+            "extracted_on": "2025-01-08",
+            "last_seen_on": "2025-01-08",
+            "still_on_page": true
+          }
+        ],
+        "verified": false
+      },
+      {
+        "email": "bernabe.astorqui@mercer.com",
+        "first_name": "Bernabé",
+        "last_name": "Astorqui",
+        "title": null,
+        "confidence": 0,
+        "sources": [
+          {
+            "domain": "linkedin.com",
+            "uri": "https://www.google.com/search?q=site:linkedin.com%20bernab%C3%A9%20astorqui%20mercer",
+            "extracted_on": "2025-01-08",
+            "last_seen_on": "2025-06-25",
+            "still_on_page": true
+          }
+        ],
+        "verified": false
+      },
+      {
+        "email": "john.fiorentino@mercer.com",
+        "first_name": "John",
+        "last_name": "Fiorentino",
+        "title": null,
+        "confidence": 0,
+        "sources": [
+          {
+            "domain": "linkedin.com",
+            "uri": "https://www.google.com/search?q=site:linkedin.com%20john%20fiorentino%20mercer",
+            "extracted_on": "2025-01-08",
+            "last_seen_on": "2025-09-30",
+            "still_on_page": true
+          }
+        ],
+        "verified": false
+      },
+      {
+        "email": "david.diaz@mercer.com",
+        "first_name": "David",
+        "last_name": "Díaz",
+        "title": null,
+        "confidence": 0,
+        "sources": [
+          {
+            "domain": "linkedin.com",
+            "uri": "https://www.google.com/search?q=site:linkedin.com%20david%20d%C3%ADaz%20mercer",
+            "extracted_on": "2025-01-08",
+            "last_seen_on": "2025-10-09",
+            "still_on_page": true
+          }
+        ],
+        "verified": false
+      },
+      {
+        "email": "adam.luistro@mercer.com",
+        "first_name": "Adam",
+        "last_name": "Luistro",
+        "title": null,
+        "confidence": 0,
+        "sources": [
+          {
+            "domain": "linkedin.com",
+            "uri": "https://www.google.com/search?q=site:linkedin.com%20adam%20luistro%20mercer",
+            "extracted_on": "2025-08-19",
+            "last_seen_on": "2025-10-07",
+            "still_on_page": true
+          }
+        ],
+        "verified": false
+      },
+      {
+        "email": "tim.ridge@mercer.com",
+        "first_name": "Tim",
+        "last_name": "Ridge",
+        "title": null,
+        "confidence": 0,
+        "sources": [
+          {
+            "domain": "linkedin.com",
+            "uri": "https://www.google.com/search?q=site:linkedin.com%20tim%20ridge%20mercer",
+            "extracted_on": "2025-08-07",
+            "last_seen_on": "2025-10-13",
+            "still_on_page": true
+          }
+        ],
+        "verified": false
+      },
+      {
+        "email": "hamad.ibrahim@mercer.com",
+        "first_name": "Hamad",
+        "last_name": "Ibrahim",
+        "title": null,
+        "confidence": 0,
+        "sources": [
+          {
+            "domain": "linkedin.com",
+            "uri": "https://www.google.com/search?q=site:linkedin.com%20hamad%20ibrahim%20mercer",
+            "extracted_on": "2025-08-07",
+            "last_seen_on": "2025-10-07",
+            "still_on_page": true
+          }
+        ],
+        "verified": false
+      },
+      {
+        "email": "thomas.richland@mercer.com",
+        "first_name": "Thomas",
+        "last_name": "Richland",
+        "title": null,
+        "confidence": 0,
+        "sources": [
+          {
+            "domain": "linkedin.com",
+            "uri": "https://www.google.com/search?q=site:linkedin.com%20thomas%20richland%20mercer",
+            "extracted_on": "2025-01-08",
+            "last_seen_on": "2025-10-04",
+            "still_on_page": true
+          }
+        ],
+        "verified": false
+      },
+      {
+        "email": "jack.chao@mercer.com",
+        "first_name": "Jack",
+        "last_name": "Chao",
+        "title": null,
+        "confidence": 0,
+        "sources": [
+          {
+            "domain": "linkedin.com",
+            "uri": "https://www.google.com/search?q=site:linkedin.com%20jack%20chao%20mercer",
+            "extracted_on": "2025-01-08",
+            "last_seen_on": "2025-10-04",
+            "still_on_page": true
+          }
+        ],
+        "verified": false
+      },
+      {
+        "email": "justyna.mcneive@mercer.com",
+        "first_name": "Justyna",
+        "last_name": "Mcneive",
+        "title": null,
+        "confidence": 0,
+        "sources": [
+          {
+            "domain": "linkedin.com",
+            "uri": "https://www.google.com/search?q=site:linkedin.com%20justyna%20mcneive%20mercer",
+            "extracted_on": "2025-02-12",
+            "last_seen_on": "2025-10-08",
+            "still_on_page": true
+          }
+        ],
+        "verified": false
+      },
+      {
+        "email": "will.leh@mercer.com",
+        "first_name": "Will",
+        "last_name": "Leh",
+        "title": null,
+        "confidence": 0,
+        "sources": [
+          {
+            "domain": "linkedin.com",
+            "uri": "https://www.google.com/search?q=site:linkedin.com%20will%20leh%20mercer",
+            "extracted_on": "2025-01-08",
+            "last_seen_on": "2025-01-08",
+            "still_on_page": true
+          }
+        ],
+        "verified": false
+      },
+      {
+        "email": "bernabe.astorqui@mercer.com",
+        "first_name": "Bernabé",
+        "last_name": "Astorqui",
+        "title": null,
+        "confidence": 0,
+        "sources": [
+          {
+            "domain": "linkedin.com",
+            "uri": "https://www.google.com/search?q=site:linkedin.com%20bernab%C3%A9%20astorqui%20mercer",
+            "extracted_on": "2025-01-08",
+            "last_seen_on": "2025-06-25",
+            "still_on_page": true
+          }
+        ],
+        "verified": false
+      },
+      {
+        "email": "john.fiorentino@mercer.com",
+        "first_name": "John",
+        "last_name": "Fiorentino",
+        "title": null,
+        "confidence": 0,
+        "sources": [
+          {
+            "domain": "linkedin.com",
+            "uri": "https://www.google.com/search?q=site:linkedin.com%20john%20fiorentino%20mercer",
+            "extracted_on": "2025-01-08",
+            "last_seen_on": "2025-09-30",
+            "still_on_page": true
+          }
+        ],
+        "verified": false
+      },
+      {
+        "email": "david.diaz@mercer.com",
+        "first_name": "David",
+        "last_name": "Díaz",
+        "title": null,
+        "confidence": 0,
+        "sources": [
+          {
+            "domain": "linkedin.com",
+            "uri": "https://www.google.com/search?q=site:linkedin.com%20david%20d%C3%ADaz%20mercer",
+            "extracted_on": "2025-01-08",
+            "last_seen_on": "2025-10-09",
+            "still_on_page": true
+          }
+        ],
+        "verified": false
+      }
+    ]
+  }
+]

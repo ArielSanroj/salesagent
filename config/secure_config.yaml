@@ -9,7 +9,7 @@ application:
 # API Configuration (keys loaded from environment variables)
 api:
   ollama:
-    model: "llama3.1:8b"
+    model: "llama3:latest"
     base_url: "http://localhost:11434"
     timeout: 30
     max_retries: 3
@@ -75,7 +75,8 @@ search:
 
 # Quality Thresholds
 quality:
-  min_relevance_score: 0.7
+  min_relevance_score: 0.55
+  low_confidence_score: 0.45
   min_company_bonus: 0.2
   min_person_bonus: 0.3
   min_hr_title_bonus: 0.2
