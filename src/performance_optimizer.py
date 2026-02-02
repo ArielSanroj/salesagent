@@ -1,282 +1,256 @@
 #!/usr/bin/env python3
 """
 Performance Optimizer for HR Tech Lead Generation System
-Implements async scraping, caching, and performance optimizations
+Coordinates async operations and uses LLM for optimization
 """
 
-import asyncio
-import hashlib
 import json
 import logging
-import time
-from datetime import datetime, timedelta
+from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional
 
-import aiohttp
-from aiohttp import ClientSession, ClientTimeout
-
-from constants import SCRAPING_MAX_RETRIES, SCRAPING_TIMEOUT
-from exceptions import NetworkError, ScrapingError
+from async_scraper import AsyncScrapingService
+from cache_manager import CacheManager
 
 logger = logging.getLogger(__name__)
 
 
-class CacheManager:
-    """Manages caching for scraped content and API responses"""
+class PerformanceOptimizer:
+    """Coordinates async operations and LLM-based optimization"""
 
-    def __init__(self, cache_dir: str = "cache", ttl_hours: int = 24):
-        self.cache_dir = Path(cache_dir)
-        self.cache_dir.mkdir(exist_ok=True)
-        self.ttl_hours = ttl_hours
+    def __init__(self, llm_service=None):
+        self.cache_manager = CacheManager()
+        self.scraping_service = AsyncScrapingService(self.cache_manager)
+        self.llm_service = llm_service
+        self.optimization_history_file = Path("optimization_history.json")
+        self.optimization_history = self._load_optimization_history()
 
-    def _get_cache_key(self, url: str) -> str:
-        """Generate cache key for URL"""
-        return hashlib.md5(url.encode()).hexdigest()
-
-    def _get_cache_path(self, cache_key: str) -> Path:
-        """Get cache file path"""
-        return self.cache_dir / f"{cache_key}.json"
-
-    def get_cached_content(self, url: str) -> Optional[Dict[str, Any]]:
-        """Get cached content for URL"""
-        cache_key = self._get_cache_key(url)
-        cache_path = self._get_cache_path(cache_key)
-
-        if not cache_path.exists():
-            return None
-
-        try:
-            with open(cache_path, "r") as f:
-                data = json.load(f)
-
-            # Check TTL
-            cached_time = datetime.fromisoformat(data["timestamp"])
-            if datetime.now() - cached_time > timedelta(hours=self.ttl_hours):
-                cache_path.unlink()  # Remove expired cache
-                return None
-
-            logger.info(f"Cache hit for {url}")
-            return data["content"]
-
-        except Exception as e:
-            logger.warning(f"Error reading cache for {url}: {e}")
-            return None
-
-    def set_cached_content(self, url: str, content: Dict[str, Any]) -> None:
-        """Cache content for URL"""
-        cache_key = self._get_cache_key(url)
-        cache_path = self._get_cache_path(cache_key)
-
-        try:
-            data = {"timestamp": datetime.now().isoformat(), "content": content}
-
-            with open(cache_path, "w") as f:
-                json.dump(data, f)
-
-            logger.info(f"Cached content for {url}")
-
-        except Exception as e:
-            logger.warning(f"Error caching content for {url}: {e}")
-
-
-class AsyncScrapingService:
-    """Async scraping service with connection pooling and caching"""
-
-    def __init__(self, cache_manager: Optional[CacheManager] = None):
-        self.cache_manager = cache_manager or CacheManager()
-        self.session: Optional[ClientSession] = None
-
-    async def __aenter__(self):
-        """Async context manager entry"""
-        timeout = ClientTimeout(total=SCRAPING_TIMEOUT)
-        connector = aiohttp.TCPConnector(limit=100, limit_per_host=30)
-        self.session = ClientSession(
-            timeout=timeout,
-            connector=connector,
-            headers={
-                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
-            },
-        )
-        return self
-
-    async def __aexit__(self, exc_type, exc_val, exc_tb):
-        """Async context manager exit"""
-        if self.session:
-            await self.session.close()
-
-    async def scrape_url_async(self, url: str) -> Optional[Dict[str, str]]:
-        """Scrape URL content asynchronously"""
-        if not self.session:
-            raise RuntimeError("Session not initialized. Use async context manager.")
-
-        # Check cache first
-        cached_content = self.cache_manager.get_cached_content(url)
-        if cached_content:
-            return cached_content
-
-        for attempt in range(SCRAPING_MAX_RETRIES):
+    def _load_optimization_history(self) -> Dict[str, Any]:
+        """Load optimization history from file"""
+        if self.optimization_history_file.exists():
             try:
-                async with self.session.get(url) as response:
-                    if response.status == 200:
-                        html_content = await response.text()
-
-                        # Extract text content
-                        from bs4 import BeautifulSoup
-
-                        soup = BeautifulSoup(html_content, "html.parser")
-
-                        # Remove script and style elements
-                        for script in soup(["script", "style"]):
-                            script.decompose()
-
-                        # Get text and clean it up
-                        text = soup.get_text()
-                        lines = (line.strip() for line in text.splitlines())
-                        chunks = (
-                            phrase.strip()
-                            for line in lines
-                            for phrase in line.split("  ")
-                        )
-                        text_content = " ".join(chunk for chunk in chunks if chunk)
-
-                        if text_content and len(text_content) > 100:
-                            title = soup.title.string if soup.title else "No title"
-
-                            result = {
-                                "content": text_content,
-                                "title": title,
-                                "url": url,
-                            }
-
-                            # Cache the result
-                            self.cache_manager.set_cached_content(url, result)
-
-                            return result
-                        else:
-                            logger.warning(f"Insufficient content extracted from {url}")
-                            return None
-                    else:
-                        logger.warning(f"HTTP {response.status} for {url}")
-                        if attempt < SCRAPING_MAX_RETRIES - 1:
-                            await asyncio.sleep(2**attempt)
-                        else:
-                            return None
-
-            except asyncio.TimeoutError:
-                logger.warning(f"Timeout scraping {url} (attempt {attempt + 1})")
-                if attempt < SCRAPING_MAX_RETRIES - 1:
-                    await asyncio.sleep(2**attempt)
-                else:
-                    return None
-
+                with open(self.optimization_history_file, "r") as f:
+                    return json.load(f)
             except Exception as e:
-                logger.warning(f"Error scraping {url} (attempt {attempt + 1}): {e}")
-                if attempt < SCRAPING_MAX_RETRIES - 1:
-                    await asyncio.sleep(2**attempt)
-                else:
-                    return None
+                logger.warning(f"Error loading optimization history: {e}")
+        return {
+            "query_performance": {},
+            "signal_optimizations": {},
+            "successful_patterns": [],
+            "last_optimization": None,
+        }
+
+    def _save_optimization_history(self) -> None:
+        """Save optimization history to file"""
+        try:
+            with open(self.optimization_history_file, "w") as f:
+                json.dump(self.optimization_history, f, indent=2)
+        except Exception as e:
+            logger.warning(f"Error saving optimization history: {e}")
+
+    def optimize_llm_calls(self, queries: List[str], signal_id: int = None) -> List[str]:
+        """Optimize queries using LLM based on historical performance"""
+        if not self.llm_service:
+            return self._simple_optimization(queries)
+
+        return self._llm_optimization(queries, signal_id)
+
+    def _simple_optimization(self, queries: List[str]) -> List[str]:
+        """Simple query optimization without LLM"""
+        optimized = []
+        for query in queries:
+            keywords = query.lower().split()
+            if len(keywords) > 3:
+                optimized.append(" ".join(keywords[:3]))
+            else:
+                optimized.append(query)
+        return optimized
+
+    def _llm_optimization(self, queries: List[str], signal_id: int) -> List[str]:
+        """Optimize queries using LLM"""
+        optimized = []
+
+        for query in queries:
+            query_key = f"{signal_id}_{query}" if signal_id else query
+            perf = self.optimization_history.get("query_performance", {}).get(query_key, {})
+
+            if perf and perf.get("success_rate", 0) < 0.3:
+                improved = self._ask_llm_for_query(query, signal_id, perf)
+                if improved:
+                    optimized.append(improved)
+                    continue
+
+            optimized.append(query)
+
+        return optimized
+
+    def _ask_llm_for_query(self, query: str, signal_id: int, perf: Dict) -> Optional[str]:
+        """Ask LLM to improve a query"""
+        prompt = f"""Optimize this search query for HR tech lead generation.
+
+Original query: "{query}"
+Signal type: {signal_id if signal_id else 'General'}
+Success rate: {perf.get('success_rate', 0):.1%}
+Average relevance: {perf.get('avg_relevance', 0):.2f}
+
+Return ONLY the optimized query, nothing else."""
+
+        try:
+            response = self.llm_service.invoke_sync(prompt, "query_optimization")
+            if response and response != "Service temporarily unavailable":
+                optimized = response.strip().strip('"').strip("'")
+                if len(optimized) > 10:
+                    logger.info(f"LLM optimized: '{query}' -> '{optimized}'")
+                    return optimized
+        except Exception as e:
+            logger.warning(f"Error optimizing query with LLM: {e}")
 
         return None
 
-    async def scrape_urls_batch(
-        self, urls: List[str], max_concurrent: int = 10
-    ) -> List[Optional[Dict[str, str]]]:
-        """Scrape multiple URLs concurrently with rate limiting"""
-        semaphore = asyncio.Semaphore(max_concurrent)
+    def get_optimized_queries_for_signal(
+        self, signal_id: int, base_queries: List[str]
+    ) -> List[str]:
+        """Get optimized queries for a signal based on history"""
+        if not self.llm_service:
+            return base_queries
 
-        async def scrape_with_semaphore(url: str) -> Optional[Dict[str, str]]:
-            async with semaphore:
-                return await self.scrape_url_async(url)
+        signal_key = str(signal_id)
+        optimizations = self.optimization_history.get("signal_optimizations", {})
+        signal_opts = optimizations.get(signal_key, [])
 
-        tasks = [scrape_with_semaphore(url) for url in urls]
-        results = await asyncio.gather(*tasks, return_exceptions=True)
+        if signal_opts:
+            latest = signal_opts[-1].get("analysis", {})
+            suggestions = latest.get("query_suggestions", [])
 
-        # Filter out exceptions and return only successful results
-        valid_results = []
-        for result in results:
-            if isinstance(result, Exception):
-                logger.error(f"Scraping task failed: {result}")
-                valid_results.append(None)
-            else:
-                valid_results.append(result)
+            if suggestions and isinstance(suggestions, list):
+                logger.info(f"Using LLM-optimized queries for signal {signal_id}")
+                return suggestions[:len(base_queries)]
 
-        return valid_results
+        return self.optimize_llm_calls(base_queries, signal_id)
 
+    def analyze_and_optimize_from_results(
+        self,
+        opportunities: List[Any],
+        queries_used: List[str],
+        signal_id: int
+    ) -> Dict[str, Any]:
+        """Analyze results using LLM and generate optimization recommendations"""
+        if not self.llm_service or not opportunities:
+            return {"optimized": False, "reason": "No LLM or no opportunities"}
 
-class PerformanceOptimizer:
-    """Main performance optimizer that coordinates async operations"""
+        metrics = self._calculate_metrics(opportunities)
+        analysis = self._get_llm_analysis(opportunities, queries_used, signal_id, metrics)
 
-    def __init__(self):
-        self.cache_manager = CacheManager()
-        self.scraping_service = AsyncScrapingService(self.cache_manager)
+        if analysis:
+            self._update_history(queries_used, signal_id, metrics, analysis)
+            return {"optimized": True, "analysis": analysis, "metrics": metrics}
 
-    async def process_opportunities_async(
-        self, articles: List[Dict[str, Any]], signal_processor
-    ) -> List[Any]:
-        """Process opportunities asynchronously"""
-        # Extract URLs for batch scraping
-        urls = [article.get("url") for article in articles if article.get("url")]
+        return {"optimized": False, "reason": "LLM analysis failed"}
 
-        if not urls:
-            return []
+    def _calculate_metrics(self, opportunities: List[Any]) -> Dict[str, Any]:
+        """Calculate performance metrics"""
+        total = len(opportunities)
+        high_quality = sum(1 for o in opportunities if o.relevance_score >= 0.8)
+        avg_rel = sum(o.relevance_score for o in opportunities) / total if total else 0
+        emails = sum(1 for o in opportunities if o.email != "Manual validation needed")
 
-        # Scrape all URLs concurrently
-        async with self.scraping_service:
-            scraped_contents = await self.scraping_service.scrape_urls_batch(urls)
+        return {
+            "total_opportunities": total,
+            "high_quality": high_quality,
+            "avg_relevance": avg_rel,
+            "emails_found": emails,
+        }
 
-        # Process scraped content
-        opportunities = []
-        for i, article in enumerate(articles):
-            if i < len(scraped_contents) and scraped_contents[i]:
-                # Update article with scraped content
-                article["scraped_content"] = scraped_contents[i]["content"]
-                article["scraped_title"] = scraped_contents[i]["title"]
+    def _get_llm_analysis(
+        self, opportunities, queries, signal_id, metrics
+    ) -> Optional[Dict]:
+        """Get LLM analysis of results"""
+        patterns = [
+            {
+                "company": o.company,
+                "title": o.title[:100],
+                "relevance": o.relevance_score,
+            }
+            for o in opportunities[:5]
+            if o.relevance_score >= 0.7
+        ]
 
-                # Process opportunity
-                opportunity = signal_processor.process_article(
-                    article, article.get("signal_type", 1)
-                )
-                if opportunity:
-                    opportunities.append(opportunity)
+        prompt = f"""Analyze HR tech lead generation results.
 
-        return opportunities
+Signal Type: {signal_id}
+Queries: {', '.join(queries)}
 
-    def optimize_llm_calls(self, queries: List[str]) -> List[str]:
-        """Optimize LLM calls by using predefined queries instead of generating them"""
-        # Use predefined queries instead of LLM generation for better performance
-        optimized_queries = []
+Results:
+- Total: {metrics['total_opportunities']}
+- High quality: {metrics['high_quality']}
+- Avg relevance: {metrics['avg_relevance']:.2f}
+- Emails found: {metrics['emails_found']}
 
+Top patterns: {json.dumps(patterns, indent=2)}
+
+Provide JSON with: "what_worked", "what_didnt_work", "query_suggestions", "recommendations"."""
+
+        try:
+            response = self.llm_service.invoke_sync(prompt, "performance_analysis")
+            if response and response != "Service temporarily unavailable":
+                try:
+                    return json.loads(response)
+                except:
+                    return {"raw_analysis": response}
+        except Exception as e:
+            logger.warning(f"Error in LLM analysis: {e}")
+
+        return None
+
+    def _update_history(
+        self, queries, signal_id, metrics, analysis
+    ) -> None:
+        """Update optimization history"""
         for query in queries:
-            # Simple keyword extraction without LLM
-            keywords = query.lower().split()
-            if len(keywords) > 3:
-                # Take first 3 keywords for efficiency
-                optimized_query = " ".join(keywords[:3])
-                optimized_queries.append(optimized_query)
-            else:
-                optimized_queries.append(query)
+            query_key = f"{signal_id}_{query}"
+            if query_key not in self.optimization_history["query_performance"]:
+                self.optimization_history["query_performance"][query_key] = {
+                    "total_runs": 0,
+                    "total_opportunities": 0,
+                    "high_quality_count": 0,
+                    "avg_relevance": 0.0,
+                }
 
-        return optimized_queries
+            perf = self.optimization_history["query_performance"][query_key]
+            perf["total_runs"] += 1
+            perf["total_opportunities"] += metrics["total_opportunities"]
+            perf["high_quality_count"] += metrics["high_quality"]
+            n = perf["total_runs"]
+            perf["avg_relevance"] = (perf["avg_relevance"] * (n - 1) + metrics["avg_relevance"]) / n
+            perf["success_rate"] = perf["high_quality_count"] / max(perf["total_opportunities"], 1)
+
+        signal_key = str(signal_id)
+        if signal_key not in self.optimization_history["signal_optimizations"]:
+            self.optimization_history["signal_optimizations"][signal_key] = []
+
+        self.optimization_history["signal_optimizations"][signal_key].append({
+            "timestamp": datetime.now().isoformat(),
+            "analysis": analysis,
+            "metrics": metrics,
+        })
+        self.optimization_history["signal_optimizations"][signal_key] = \
+            self.optimization_history["signal_optimizations"][signal_key][-10:]
+
+        self.optimization_history["last_optimization"] = datetime.now().isoformat()
+        self._save_optimization_history()
+
+        logger.info(f"LLM analysis completed for signal {signal_id}")
+
+    def get_performance_metrics(self) -> Dict[str, Any]:
+        """Get performance metrics"""
+        return self.cache_manager.get_cache_stats()
 
     def batch_process_opportunities(
         self, opportunities: List[Any], batch_size: int = 10
     ) -> List[List[Any]]:
-        """Process opportunities in batches for better memory management"""
-        batches = []
-        for i in range(0, len(opportunities), batch_size):
-            batch = opportunities[i : i + batch_size]
-            batches.append(batch)
-
-        return batches
-
-    def get_performance_metrics(self) -> Dict[str, Any]:
-        """Get performance metrics"""
-        cache_dir = self.cache_manager.cache_dir
-        cache_files = list(cache_dir.glob("*.json"))
-
-        return {
-            "cache_size": len(cache_files),
-            "cache_dir": str(cache_dir),
-            "timestamp": datetime.now().isoformat(),
-        }
+        """Process opportunities in batches"""
+        return [
+            opportunities[i:i + batch_size]
+            for i in range(0, len(opportunities), batch_size)
+        ]

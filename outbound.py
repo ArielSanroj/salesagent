@@ -1,69 +1,34 @@
 #!/usr/bin/env python3
 """
-HR Tech Lead Generation System - Improved Version
-Consolidates functionality from both outbound.py and outbound_secure.py
-Implements secure credential management, resilient LLM service, and proper error handling
+HR Tech Lead Generation System - Main Orchestrator
+Coordinates signal processing, data enrichment, and reporting
 """
 
-import asyncio
-import concurrent.futures
-import fcntl
-import io
-import json
 import logging
 import os
-import re
-import smtplib
 import sys
 import time
-from datetime import datetime, timedelta
-from email import encoders
-from email.mime.base import MIMEBase
-from email.mime.multipart import MIMEMultipart
-from email.mime.text import MIMEText
+from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
-from urllib.parse import urlparse
-from urllib.robotparser import RobotFileParser
+from typing import List
 
-import pandas as pd
-import requests
-import yaml
-from bs4 import BeautifulSoup
-from dateutil.parser import parse as parse_date
 from dotenv import load_dotenv
-from langchain_core.prompts import PromptTemplate
-from pyhunter import PyHunter
-from ratelimit import limits, sleep_and_retry
-from requests.adapters import HTTPAdapter
-from requests.exceptions import HTTPError
-from urllib3.util.retry import Retry
 
 # Add src to path for imports
 sys.path.insert(0, str(Path(__file__).parent / "src"))
 
-from constants import (
-    NEWS_API_CALL_LIMIT,
-    NEWS_API_TIMEOUT,
-    NEWSDATA_LATEST_URL,
-    SIGNAL_TYPES,
-    TARGET_OPPORTUNITIES_PER_WEEK,
-)
+from constants import SIGNAL_TYPES, LOCK_FILE
 from credentials_manager import CredentialsManager
-from exceptions import (
-    APIServiceError,
-    AuthenticationError,
-    NetworkError,
-    RateLimitError,
-    ScrapingError,
-    ValidationError,
-)
-from google_sheets_service import GoogleSheetsService
+from email_service import send_email_report, summarize_opportunities
+from http_utils import create_session
 from llm_service import LLMService
 from models import Opportunity
+from performance_optimizer import PerformanceOptimizer
+from process_lock import acquire_lock, release_lock
+from results_manager import filter_results, save_results, get_timestamped_filename
 from scraping_service import ScrapingService
 from search_service import SearchService
-from signal_processor import SignalProcessor
+from signal_processor_refactored import SignalProcessor
 
 # Load environment variables
 load_dotenv()
@@ -76,774 +41,119 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# Global variables
-credentials_manager = None
-llm_service = None
-gmail_system = None
-CONFIG = None
-session = None
 
-# Process lock mechanism
-LOCK_FILE = "outbound.lock"
+class LeadGenerationSystem:
+    """Main orchestrator for lead generation"""
 
-# Constants
-NEWS_API_CALL_COUNT = 0
-NEWS_API_CALL_LIMIT = int(os.getenv("NEWSDATA_API_CALL_LIMIT", "50"))
+    def __init__(self):
+        self.credentials_manager = None
+        self.llm_service = None
+        self.gmail_system = None
+        self.config = None
+        self.session = None
 
+    def initialize(self) -> bool:
+        """Initialize all services with secure configuration"""
+        try:
+            self.credentials_manager = CredentialsManager()
 
-def initialize_services() -> bool:
-    """Initialize all services with secure configuration"""
-    global credentials_manager, llm_service, CONFIG, session
+            if not self.credentials_manager.validate_required_credentials():
+                logger.error("Missing required credentials")
+                return False
 
-    try:
-        # Initialize credentials manager
-        credentials_manager = CredentialsManager()
+            self.config = self.credentials_manager.get_all_config()
 
-        # Validate required credentials
-        if not credentials_manager.validate_required_credentials():
-            logger.error("Missing required credentials. Please check your .env file.")
+            try:
+                self.llm_service = LLMService(self.credentials_manager)
+                logger.info("LLM service initialized successfully")
+            except Exception as e:
+                logger.warning(f"LLM service initialization failed: {e}")
+                self.llm_service = None
+
+            self.session = create_session()
+
+            logger.info("All services initialized successfully")
+            return True
+
+        except Exception as e:
+            logger.error(f"Failed to initialize services: {e}")
             return False
 
-        # Get complete configuration
-        CONFIG = credentials_manager.get_all_config()
+    def run_signal(self, signal_id: int) -> List[Opportunity]:
+        """Run a specific signal type"""
+        logger.info(f"Running signal {signal_id}: {SIGNAL_TYPES.get(signal_id, 'Unknown')}")
 
-        # Initialize LLM service with resilience (no crash if LLM fails)
-        try:
-            llm_service = LLMService(credentials_manager)
-            logger.info("✅ LLM service initialized successfully")
-        except Exception as e:
-            logger.warning(f"⚠️ LLM service initialization failed: {e}")
-            logger.warning("System will continue with fallback responses")
-            llm_service = None
+        # Initialize services
+        newsdata_config = self.config.get("newsdata") or {}
+        serpapi_config = self.config.get("serpapi") or {}
 
-        # Create HTTP session with retry strategy
-        session = create_session()
-
-        logger.info("✅ All services initialized successfully")
-        return True
-
-    except Exception as e:
-        logger.error(f"❌ Failed to initialize services: {e}")
-        return False
-
-
-def create_session() -> requests.Session:
-    """Create HTTP session with retry strategy"""
-    session = requests.Session()
-
-    # Retry strategy
-    retry_strategy = Retry(
-        total=3,
-        backoff_factor=1,
-        status_forcelist=[429, 500, 502, 503, 504],
-    )
-    adapter = HTTPAdapter(max_retries=retry_strategy)
-    session.mount("http://", adapter)
-    session.mount("https://", adapter)
-
-    return session
-
-
-def acquire_lock() -> bool:
-    """Acquire a lock to prevent multiple instances from running"""
-    try:
-        lock_fd = os.open(LOCK_FILE, os.O_CREAT | os.O_WRONLY | os.O_TRUNC)
-        fcntl.flock(lock_fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
-        os.write(lock_fd, str(os.getpid()).encode())
-        os.close(lock_fd)
-        logger.info(f"Lock acquired successfully (PID: {os.getpid()})")
-        return True
-    except (OSError, IOError) as e:
-        logger.error(f"Could not acquire lock: {e}")
-        print("❌ Another instance is already running!")
-        print(f"   Delete lock file if needed: rm {LOCK_FILE}")
-        return False
-
-
-def release_lock() -> None:
-    """Release the process lock"""
-    try:
-        if os.path.exists(LOCK_FILE):
-            os.unlink(LOCK_FILE)
-            logger.info("Lock released successfully")
-    except OSError:
-        pass
-
-
-def is_valid_url(url: str) -> bool:
-    """Validate URL format"""
-    if not url or not isinstance(url, str):
-        return False
-
-    try:
-        result = urlparse(url)
-        return all([result.scheme, result.netloc]) and result.scheme in [
-            "http",
-            "https",
-        ]
-    except Exception:
-        return False
-
-
-def extract_text_from_html(html_content: str) -> str:
-    """Extract clean text from HTML content"""
-    try:
-        soup = BeautifulSoup(html_content, "html.parser")
-
-        # Remove script and style elements
-        for script in soup(["script", "style"]):
-            script.decompose()
-
-        # Get text and clean it up
-        text = soup.get_text()
-        lines = (line.strip() for line in text.splitlines())
-        chunks = (phrase.strip() for line in lines for phrase in line.split("  "))
-        text = " ".join(chunk for chunk in chunks if chunk)
-
-        return text
-    except Exception as e:
-        logger.warning(f"Error extracting text from HTML: {e}")
-        return ""
-
-
-def calculate_relevance_score(content: str, keywords: List[str]) -> float:
-    """Calculate relevance score based on keyword presence"""
-    if not content or not keywords:
-        return 0.0
-
-    content_lower = content.lower()
-    keyword_matches = sum(1 for keyword in keywords if keyword.lower() in content_lower)
-
-    # Base score from keyword matches
-    base_score = min(keyword_matches / len(keywords), 1.0)
-
-    # Bonus for multiple occurrences
-    total_occurrences = sum(
-        content_lower.count(keyword.lower()) for keyword in keywords
-    )
-    occurrence_bonus = min(total_occurrences * 0.1, 0.3)
-
-    return min(base_score + occurrence_bonus, 1.0)
-
-
-def extract_company_name(text: str) -> Optional[str]:
-    """Extract company name from text using LLM, prioritizing actual companies over news sources"""
-    if not text or len(text) < 10:
-        return None
-
-    # Fallback if LLM service is not available
-    if not llm_service:
-        logger.warning(
-            "LLM service not available, using fallback for company extraction"
+        search_service = SearchService(
+            self.session,
+            newsdata_config.get("api_key"),
+            serpapi_config.get("api_key"),
         )
-        return None
-
-    # Improved prompt to identify actual companies (not news publishers)
-    prompt = f"""Extract the ACTUAL COMPANY NAME mentioned in this article, NOT the news website or publisher.
-
-Avoid news sources like: Postregister, Hastingstribune, SHRM, PR Newswire, Deloitte (if article), Mercer (if article), etc.
-
-Look for:
-- Companies that are the SUBJECT of the article (e.g., "Rally House", "McLean & Company", "Smartstream")
-- Companies mentioned in quotes or as the main topic
-- Companies that are doing something (receiving awards, making announcements, etc.)
-
-Text: {text[:1000]}
-
-Actual company name (not news source):"""
-
-    try:
-        response = llm_service.invoke_sync(prompt, "company_extraction")
-        if response and response != "Service temporarily unavailable":
-            cleaned = response.strip()
-            # Filter out common news sources
-            news_sources = [
-                "postregister",
-                "hastingstribune",
-                "shrm",
-                "pr newswire",
-                "prnewswire",
-                "deloitte",
-                "mercer",
-                "fintech finance",
-                "ffnews",
-            ]
-            if cleaned.lower() not in [ns.lower() for ns in news_sources]:
-                logger.info(f"✅ Extracted company: {cleaned}")
-                return cleaned
-            else:
-                logger.warning(
-                    f"⚠️  Extracted company appears to be news source: {cleaned}"
-                )
-                # Try fallback with more specific instruction
-                return _extract_company_fallback(text)
-    except Exception as e:
-        logger.warning(f"Error extracting company name: {e}")
-
-    return None
-
-
-def _extract_company_fallback(text: str) -> Optional[str]:
-    """Fallback company extraction with more specific instructions"""
-    if not llm_service:
-        return None
-
-    prompt = f"""From this text, identify the company that is the MAIN SUBJECT or TOPIC of the article.
-This should be a business/organization, NOT a news website, publisher, or media company.
-
-Examples:
-- If article says "Rally House wins award" → Company is "Rally House"
-- If article says "McLean & Company releases playbook" → Company is "McLean & Company"
-- If article is ABOUT a company doing something → That company
-
-Text: {text[:800]}
-
-Company name (main subject):"""
-
-    try:
-        response = llm_service.invoke_sync(prompt, "company_extraction")
-        if response and response != "Service temporarily unavailable":
-            return response.strip()
-    except Exception:
-        pass
-
-    return None
-
-
-def extract_person_name(text: str) -> Optional[str]:
-    """Extract person name from text using LLM, prioritizing quotes"""
-    if not text or len(text) < 10:
-        return None
-
-    # Fallback if LLM service is not available
-    if not llm_service:
-        logger.warning(
-            "LLM service not available, using fallback for person extraction"
-        )
-        return None
-
-    # First, try to extract from quotes (higher priority)
-    prompt_quotes = f"""Extract the person's name from quotes in this text. Look for names mentioned after titles like:
-- "said [Name]"
-- "according to [Name]"
-- "[Name], CHRO/VP HR/Head of HR"
-- "[Title] [Name] said"
-
-Focus on CHRO, VP of HR, Head of HR, or other HR executives mentioned in quotes.
-
-Text: {text[:1000]}
-
-Person name (from quotes):"""
-
-    try:
-        response = llm_service.invoke_sync(prompt_quotes, "person_extraction")
-        if response and response != "Service temporarily unavailable":
-            cleaned = response.strip()
-            # Validate it looks like a name (has at least 2 words)
-            if (
-                cleaned
-                and len(cleaned.split()) >= 2
-                and cleaned.lower() not in ["unknown", "none", "n/a"]
-            ):
-                logger.info(f"✅ Found person name from quotes: {cleaned}")
-                return cleaned
-    except Exception as e:
-        logger.warning(f"Error extracting person name from quotes: {e}")
-
-    # Fallback: General extraction if quotes didn't work
-    prompt_general = f"""Extract the person's name (CHRO, HR leader, or executive) from this text. Return only the full name, nothing else.
-
-Text: {text[:500]}
-
-Person name:"""
-
-    try:
-        response = llm_service.invoke_sync(prompt_general, "person_extraction")
-        if response and response != "Service temporarily unavailable":
-            cleaned = response.strip()
-            if (
-                cleaned
-                and len(cleaned.split()) >= 2
-                and cleaned.lower() not in ["unknown", "none", "n/a"]
-            ):
-                logger.info(f"✅ Found person name (general extraction): {cleaned}")
-                return cleaned
-    except Exception as e:
-        logger.warning(f"Error extracting person name: {e}")
-
-    return None
-
-
-def parse_article_date(date_str: str) -> Optional[str]:
-    """Parse article date string to YYYY-MM-DD format"""
-    if not date_str:
-        return None
-
-    try:
-        parsed_date = parse_date(date_str)
-        return parsed_date.strftime("%Y-%m-%d")
-    except Exception:
-        return None
-
-
-def is_valid_email(email: str) -> bool:
-    """Validate email format"""
-    if not email or not isinstance(email, str):
-        return False
-
-    pattern = r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$"
-    return bool(re.match(pattern, email))
-
-
-def llm_email_finder(company: str, person: str) -> str:
-    """Find email using LLM with fallback"""
-    if not company or not person or person.lower() in ["unknown", ""]:
-        return "Manual validation needed"
-
-    # Fallback if LLM service is not available
-    if not llm_service:
-        logger.warning("LLM service not available, using fallback for email finder")
-        return "Manual validation needed"
-
-    prompt = f"""Given company '{company}' and person '{person}', suggest the most likely email format.
-
-Return ONLY the email address in this format: firstname.lastname@company.com
-
-Examples:
-- Company: Google, Person: John Smith → john.smith@google.com
-- Company: Microsoft, Person: Jane Doe → jane.doe@microsoft.com
-
-Company: {company}
-Person: {person}
-Email:"""
-
-    try:
-        response = llm_service.invoke_sync(prompt, "email_finder")
-        if response and response != "Service temporarily unavailable":
-            # Clean up the response
-            if "@" in response:
-                email = response.split("\n")[-1].strip()
-                if "@" in email and "." in email and is_valid_email(email):
-                    logger.info(
-                        f"LLM suggested email for {person} at {company}: {email}"
-                    )
-                return email
-
-        logger.warning(f"LLM returned invalid email format: {response}")
-        return "Manual validation needed"
-    except Exception as e:
-        logger.error(f"LLM email finder failed for {company}, {person}: {e}")
-        return "Manual validation needed"
-
-
-def hunter_email_verifier(email: str) -> str:
-    """Verify email using Hunter.io with fallback"""
-    if not CONFIG.get("hunter") or not CONFIG["hunter"].get("api_key"):
-        return email
-
-    try:
-        hunter = PyHunter(CONFIG["hunter"]["api_key"])
-        result = hunter.email_verifier(email)
-
-        if result and result.get("result") == "deliverable":
-            logger.info(f"Hunter.io verified email: {email}")
-            return email
-        else:
-            logger.warning(f"Hunter.io could not verify email: {email}")
-            return email
-    except Exception as e:
-        logger.warning(f"Hunter.io verification failed for {email}: {e}")
-        return email
-
-
-def _check_news_api_limits() -> bool:
-    """Check if we can make API calls"""
-    global NEWS_API_CALL_COUNT
-
-    if NEWS_API_CALL_COUNT >= NEWS_API_CALL_LIMIT:
-        logger.warning("NewsData.io daily call limit reached")
-        return False
-
-    if not CONFIG.get("newsdata") or not CONFIG["newsdata"].get("api_key"):
-        logger.warning("NEWSDATA_API_KEY not configured; returning empty results")
-        return False
-
-    return True
-
-
-def _handle_news_api_response(response) -> bool:
-    """Handle NewsData.io API response and return success status"""
-    if response.status_code == 429:
-        logger.warning("NewsData.io rate limit exceeded")
-        return False
-    elif response.status_code == 401:
-        logger.error("NewsData.io API key invalid or expired")
-        return False
-    elif response.status_code == 403:
-        logger.error("NewsData.io API access forbidden")
-        return False
-    elif response.status_code == 422:
-        logger.error("NewsData.io invalid request parameters")
-        return False
-
-    return True
-
-
-def _process_news_articles(
-    articles: List[Dict], domains: Optional[List[str]], num_results: int
-) -> List[Dict]:
-    """Process articles and filter by domains"""
-    processed = []
-
-    for article in articles:
-        if len(processed) >= num_results:
-            break
-
-        url = article.get("link")
-        if not url:
-            continue
-
-        if domains:
-            parsed_domain = urlparse(url).netloc.lower()
-            stripped_domain = (
-                parsed_domain[4:] if parsed_domain.startswith("www.") else parsed_domain
-            )
-            if stripped_domain not in domains:
-                continue
-
-        # Build standardized article object
-        article_data = {
-            "url": url,
-            "title": article.get("title", ""),
-            "snippet": article.get("description", ""),
-            "source": article.get("source_name", article.get("source_id", "")),
-            "source_id": article.get("source_id", ""),
-            "content": article.get("content", ""),
-            "publishedAt": article.get("pubDate"),
-            "keywords": article.get("keywords", []),
-            "creator": article.get("creator", []),
-            "category": article.get("category", []),
-            "country": article.get("country", []),
-            "language": article.get("language", "english"),
-            "image_url": article.get("image_url"),
-            "article_id": article.get("article_id"),
-        }
-        processed.append(article_data)
-
-    return processed
-
-
-def fetch_news_articles(
-    query: str, num_results: int = 10, domains: Optional[List[str]] = None
-) -> List[Dict[str, Any]]:
-    """Fetch news articles from NewsData.io API with improved implementation"""
-    global NEWS_API_CALL_COUNT
-
-    if not _check_news_api_limits():
-        return []
-
-    aggregated = []
-    endpoint = NEWSDATA_LATEST_URL
-
-    # Build base parameters
-    params = {
-        "apikey": CONFIG["newsdata"]["api_key"],
-        "q": query,
-        "language": "en",
-    }
-
-    page_token = None
-    max_pages = 5  # Prevent infinite loops
-    page_count = 0
-
-    try:
-        while len(aggregated) < num_results and page_count < max_pages:
-            request_params = dict(params)
-            if page_token:
-                request_params["page"] = page_token
-
-            response = session.get(endpoint, params=request_params, timeout=30)
-
-            if not _handle_news_api_response(response):
-                break
-
-            response.raise_for_status()
-            payload = response.json()
-
-            # Check API response status
-            if payload.get("status") != "success":
-                error_msg = payload.get("message", "NewsData.io API error")
-                logger.error(f"NewsData.io API error: {error_msg}")
-                break
-
-            articles = payload.get("results", [])
-            if not articles:
-                logger.info("No more articles available from NewsData.io")
-                break
-
-            processed_articles = _process_news_articles(articles, domains, num_results)
-            aggregated.extend(processed_articles)
-
-            page_token = payload.get("nextPage")
-            page_count += 1
-
-            if not page_token:
-                logger.info("Reached last page of NewsData.io results")
-                break
-
-    except Exception as e:
-        logger.error(f"Error fetching news articles: {e}")
-
-    finally:
-        NEWS_API_CALL_COUNT += 1
-
-    logger.info(f"NewsData.io returned {len(aggregated)} articles for query '{query}'")
-    return aggregated[:num_results]
-
-
-def scrape_url_content(url: str) -> Optional[Dict[str, str]]:
-    """Scrape content from URL with retry logic"""
-    if not is_valid_url(url):
-        return None
-
-    for attempt in range(3):
-        try:
-            headers = {
-                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
-            }
-
-            response = session.get(url, headers=headers, timeout=30)
-            response.raise_for_status()
-
-            # Extract text content
-            text_content = extract_text_from_html(response.text)
-
-            if text_content and len(text_content) > 100:
-                return {
-                    "content": text_content,
-                    "title": BeautifulSoup(response.text, "html.parser").title.string
-                    if BeautifulSoup(response.text, "html.parser").title
-                    else "No title",
-                    "url": url,
-                }
-
-        except Exception as e:
-            logger.warning(f"Scraping attempt {attempt + 1} failed for {url}: {e}")
-            if attempt < 2:
-                time.sleep(2**attempt)
-
-        return None
-
-
-def process_opportunity(
-    article: Dict[str, Any], signal_type: int
-) -> Optional[Opportunity]:
-    """Process a single opportunity with LLM assistance"""
-    try:
-        # Extract basic information
-        title = article.get("title", "")
-        url = article.get("url", "")
-        date = article.get("publishedAt", "")
-
-        if not title or not url:
-            return None
-
-        # Scrape content
-        scraped_content = scrape_url_content(url)
-        if not scraped_content:
-            return None
-
-        content = scraped_content["content"]
-
-        # Extract company and person using LLM
-        company = extract_company_name(content)
-        person = extract_person_name(content)
-
-        if not company:
-            return None
-
-        # Calculate relevance score
-        keywords = CONFIG["search"]["keywords"]
-        relevance_score = calculate_relevance_score(content, keywords)
-
-        # Apply quality thresholds
-        quality_config = CONFIG["quality"]
-        if relevance_score < quality_config["min_relevance_score"]:
-            return None
-
-        # Find email
-        email = "Manual validation needed"
-        if person and person != "Unknown":
-            email = llm_email_finder(company, person)
-            if email != "Manual validation needed":
-                email = hunter_email_verifier(email)
-
-        # Create opportunity
-        opportunity = Opportunity(
-            title=title,
-            company=company,
-            person=person or "Unknown",
-            email=email,
-            url=url,
-            date=parse_article_date(date) or datetime.now().strftime("%Y-%m-%d"),
-            content=content[:1000],  # Truncate for storage
-            relevance_score=relevance_score,
-            signal_type=signal_type,
-            source=article.get("source", "Unknown"),
+        scraping_service = ScrapingService(self.session)
+
+        performance_optimizer = PerformanceOptimizer(llm_service=self.llm_service)
+
+        signal_processor = SignalProcessor(
+            self.llm_service,
+            search_service,
+            scraping_service,
+            performance_optimizer,
+            self.config.get("quality", {}),
         )
 
-        logger.info(
-            f"Processed opportunity: {company} - {person} (Score: {relevance_score:.2f})"
-        )
-        return opportunity
+        opportunities = signal_processor.process_signal(signal_id, 10)
 
-    except Exception as e:
-        logger.error(f"Error processing opportunity: {e}")
-        return None
+        logger.info(f"Signal {signal_id} completed: {len(opportunities)} opportunities")
+        return opportunities
 
+    def run_full_lead_generation(self, target_opportunities: int) -> List[Opportunity]:
+        """Run all signals and return filtered opportunities"""
+        logger.info("Starting full lead generation workflow")
+        all_opportunities = []
 
-def generate_queries(signal_id: int) -> List[str]:
-    """Generate search queries for a specific signal type"""
-    # Predefined queries for each signal type (more efficient than LLM generation)
-    signal_queries = {
-        1: [
-            "HR technology evaluation software solutions",
-            "HR tech assessment tools",
-            "human resources technology evaluation",
-        ],
-        2: [
-            "new CHRO chief human resources officer appointed",
-            "new HR director hired",
-            "chief people officer appointment",
-        ],
-        3: [
-            "HR tech content website blog",
-            "human resources technology insights",
-            "HR software case studies",
-        ],
-        4: [
-            "HR system migration technology change",
-            "workday implementation project",
-            "HR tech stack transition",
-        ],
-        5: [
-            "company expansion growth hiring HR",
-            "startup funding HR technology",
-            "HR tech investment announcement",
-        ],
-        6: [
-            "HR team hiring downsizing restructuring",
-            "human resources job openings",
-            "HR director recruitment",
-        ],
-    }
+        for signal_id in range(1, 7):
+            opportunities = self.run_signal(signal_id)
+            all_opportunities.extend(opportunities)
 
-    return signal_queries.get(signal_id, signal_queries[1])
+            if target_opportunities and len(all_opportunities) >= target_opportunities:
+                logger.info(f"Collected {len(all_opportunities)} raw opportunities")
 
+            time.sleep(5)
 
-def run_signal(signal_id: int) -> List[Opportunity]:
-    """Run a specific signal type using the new SignalProcessor"""
-    logger.info(f"Running signal {signal_id}: {SIGNAL_TYPES.get(signal_id, 'Unknown')}")
+        filtered = filter_results(all_opportunities)
+        if target_opportunities > 0:
+            filtered = filtered[:target_opportunities]
 
-    # Initialize services
-    newsdata_config = CONFIG.get("newsdata") or {}
-    serpapi_config = CONFIG.get("serpapi") or {}
+        # Save results
+        timestamp_file = get_timestamped_filename("all_signals")
+        save_results(filtered, timestamp_file)
+        save_results(filtered, "all_signals.csv")
 
-    search_service = SearchService(
-        session,
-        newsdata_config.get("api_key"),
-        serpapi_config.get("api_key"),
-    )
-    scraping_service = ScrapingService(session)
-    signal_processor = SignalProcessor(
-        llm_service,
-        search_service,
-        scraping_service,
-        CONFIG.get("quality", {}),
-    )
+        # Create email drafts
+        self._create_email_drafts(filtered)
 
-    # Process the signal
-    opportunities = signal_processor.process_signal(signal_id, 10)
+        logger.info(f"Lead generation completed with {len(filtered)} opportunities")
+        return filtered
 
-    logger.info(
-        f"Signal {signal_id} completed: {len(opportunities)} opportunities found"
-    )
-    return opportunities
-
-
-def save_results(opportunities: List[Opportunity], filename: str) -> None:
-    """Save opportunities to CSV file"""
-    if not opportunities:
-        logger.warning("No opportunities to save")
-        return
-
-    # Convert to DataFrame
-    data = []
-    for opp in opportunities:
-        data.append(
-            {
-                "Title": opp.title,
-                "Company": opp.company,
-                "Person": opp.person,
-                "Email": opp.email,
-                "URL": opp.url,
-                "Date": opp.date,
-                "Relevance Score": opp.relevance_score,
-                "Signal Type": opp.signal_type,
-                "Source": opp.source,
-            }
-        )
-
-    df = pd.DataFrame(data)
-    df.to_csv(filename, index=False)
-    logger.info(f"Saved {len(opportunities)} opportunities to {filename}")
-
-
-def filter_results(opportunities: List[Opportunity]) -> List[Opportunity]:
-    """Filter and deduplicate opportunities"""
-    if not opportunities:
-        return []
-
-    # Remove duplicates based on company and person
-    seen = set()
-    filtered = []
-
-    for opp in opportunities:
-        key = (opp.company.lower(), opp.person.lower())
-        if key not in seen:
-            seen.add(key)
-            filtered.append(opp)
-
-    # Sort by relevance score
-    filtered.sort(key=lambda x: x.relevance_score, reverse=True)
-
-    logger.info(
-        f"Filtered {len(opportunities)} opportunities to {len(filtered)} unique opportunities"
-    )
-    return filtered
-
-
-def create_email_drafts_for_opportunities(opportunities: List[Opportunity]) -> None:
-    """Create Gmail drafts for the provided opportunities"""
-    global gmail_system
-
-    if not opportunities:
-        logger.info("No opportunities available for email draft creation")
-        return
-
-    if gmail_system is None:
-        try:
-            from gmail_email_system import GmailEmailSystem
-
-            gmail_system = GmailEmailSystem(credentials_manager)
-            logger.info("Gmail email system initialized")
-        except Exception as e:
-            logger.error(f"Unable to initialize Gmail email system: {e}")
+    def _create_email_drafts(self, opportunities: List[Opportunity]) -> None:
+        """Create Gmail drafts for the provided opportunities"""
+        if not opportunities:
+            logger.info("No opportunities for email draft creation")
             return
 
-    payload = []
-    for opp in opportunities:
-        payload.append(
+        if self.gmail_system is None:
+            try:
+                from gmail_email_system import GmailEmailSystem
+                self.gmail_system = GmailEmailSystem(self.credentials_manager)
+                logger.info("Gmail email system initialized")
+            except Exception as e:
+                logger.error(f"Unable to initialize Gmail email system: {e}")
+                return
+
+        payload = [
             {
                 "company": opp.company,
                 "person": opp.person,
@@ -851,313 +161,98 @@ def create_email_drafts_for_opportunities(opportunities: List[Opportunity]) -> N
                 "signal_type": opp.signal_type,
                 "url": opp.url,
             }
+            for opp in opportunities
+        ]
+
+        try:
+            drafts = self.gmail_system.create_batch_drafts(payload) or []
+            self.gmail_system.save_draft_summary(drafts)
+            logger.info("Email drafts created and summarized")
+        except Exception as e:
+            logger.error(f"Error creating Gmail drafts: {e}")
+
+    def send_report(
+        self,
+        opportunities: List[Opportunity],
+        target: int,
+        is_weekly: bool = False
+    ) -> bool:
+        """Send email report"""
+        email_config = self.config.get("email", {})
+        if not email_config:
+            logger.error("Email configuration not found")
+            return False
+
+        subject = (
+            f"Weekly HR Tech Lead Generation Report - {datetime.now().strftime('%Y-%m-%d')}"
+            if is_weekly
+            else "daily leads"
         )
 
-    try:
-        drafts = gmail_system.create_batch_drafts(payload) or []
-        gmail_system.save_draft_summary(drafts)
-        logger.info("Email drafts created and summarized successfully")
-    except Exception as e:
-        logger.error(f"Error while creating Gmail drafts: {e}")
+        report_content = summarize_opportunities(opportunities, target)
 
-
-def summarize_opportunities(opportunities: List[Opportunity], target: int) -> str:
-    """Build a human-readable summary for email reports"""
-    if not opportunities:
-        return "No opportunities were generated during this run."
-
-    lines = [
-        f"Generated {len(opportunities)} opportunities toward a target of {target}.",
-        "",
-        "Opportunities:",
-    ]
-
-    for idx, opp in enumerate(opportunities, start=1):
-        signal_name = SIGNAL_TYPES.get(opp.signal_type, "Unknown signal")
-        email_value = opp.email if opp.email else "Needs lookup"
-        lines.append(
-            f"{idx}. {opp.company} - {signal_name} | Contact: {opp.person or 'N/A'} | Email: {email_value}"
+        return send_email_report(
+            email_config,
+            report_content,
+            "all_signals.csv",
+            subject,
+            opportunities
         )
-        if opp.url:
-            lines.append(f"   URL: {opp.url}")
 
-    return "\n".join(lines)
-
-
-def run_full_lead_generation(target_opportunities: int) -> List[Opportunity]:
-    """Run all signals and return filtered opportunities capped at the target"""
-    logger.info("Starting full lead generation workflow")
-    all_opportunities: List[Opportunity] = []
-
-    for signal_id in range(1, 7):
-        opportunities = run_signal(signal_id)
-        all_opportunities.extend(opportunities)
-
-        if target_opportunities and len(all_opportunities) >= target_opportunities:
-            logger.info(
-                "Collected at least %s raw opportunities, continuing to ensure coverage",
-                target_opportunities,
-            )
-
-        time.sleep(5)
-
-    filtered = filter_results(all_opportunities)
-    if target_opportunities > 0:
-        filtered = filtered[:target_opportunities]
-
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M")
-    save_results(filtered, f"all_signals_{timestamp}.csv")
-    save_results(filtered, "all_signals.csv")
-    create_email_drafts_for_opportunities(filtered)
-
-    logger.info(
-        "Full lead generation workflow completed with %s opportunities", len(filtered)
-    )
-    return filtered
+    def cleanup(self) -> None:
+        """Cleanup resources"""
+        if self.llm_service:
+            self.llm_service.stop_worker_thread()
 
 
 def test_signal(signal_id: int) -> List[Opportunity]:
     """Test a single signal for development"""
     logger.info(f"Testing signal {signal_id}")
 
-    opportunities = run_signal(signal_id)
-    if opportunities:
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M")
-        filename = f"test_signal_{signal_id}_{timestamp}.csv"
-        save_results(opportunities, filename)
-        logger.info(
-            f"Test completed: {len(opportunities)} opportunities saved to {filename}"
-        )
-        return opportunities
-    else:
-        logger.warning(f"No opportunities found for signal {signal_id}")
+    system = LeadGenerationSystem()
+    if not system.initialize():
+        logger.error("Failed to initialize")
         return []
 
-
-def send_email_report(
-    report_content: str,
-    csv_file_path: Optional[str] = None,
-    email_subject: str = "daily leads",
-    opportunities: Optional[List[Opportunity]] = None,
-) -> bool:
-    """Send the synthesized report via email with HTML table format"""
-    email_config = CONFIG.get("email", {})
-
-    if not email_config:
-        logger.error("Email configuration not found")
-        return False
-
     try:
-        # Create message with alternative content (HTML + plain text)
-        msg = MIMEMultipart("alternative")
-        msg["From"] = email_config["sender_email"]
-        msg["To"] = email_config["recipient_email"]
-        msg["Subject"] = email_subject
-
-        # If opportunities are provided, create HTML table format
+        opportunities = system.run_signal(signal_id)
         if opportunities:
-            # Create HTML table
-            table_rows = []
-            for idx, opp in enumerate(opportunities, start=1):
-                signal_name = SIGNAL_TYPES.get(opp.signal_type, "Unknown signal")
-                email_value = opp.email if opp.email else "Needs lookup"
-                person_value = opp.person if opp.person else "N/A"
-                url_value = opp.url if opp.url else ""
-
-                # Truncate long URLs for display
-                url_display = (
-                    url_value[:50] + "..." if len(url_value) > 50 else url_value
-                )
-                url_link = (
-                    f'<a href="{url_value}">{url_display}</a>' if url_value else "N/A"
-                )
-
-                table_rows.append(
-                    f"""
-                <tr>
-                    <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">{idx}</td>
-                    <td style="border: 1px solid #ddd; padding: 8px; font-weight: bold;">{opp.company}</td>
-                    <td style="border: 1px solid #ddd; padding: 8px;">{signal_name}</td>
-                    <td style="border: 1px solid #ddd; padding: 8px;">{person_value}</td>
-                    <td style="border: 1px solid #ddd; padding: 8px;"><a href="mailto:{email_value}">{email_value}</a></td>
-                    <td style="border: 1px solid #ddd; padding: 8px; font-size: 11px;">{url_link}</td>
-                </tr>
-                """
-                )
-
-            html_table = f"""
-            <p>Generated <strong>{len(opportunities)}</strong> opportunities.</p>
-            <table style="border-collapse: collapse; width: 100%; margin: 20px 0; font-family: Arial, sans-serif; font-size: 13px;">
-                <thead>
-                    <tr style="background-color: #4CAF50; color: white;">
-                        <th style="border: 1px solid #ddd; padding: 12px; text-align: left;">#</th>
-                        <th style="border: 1px solid #ddd; padding: 12px; text-align: left;">Company</th>
-                        <th style="border: 1px solid #ddd; padding: 12px; text-align: left;">Signal Type</th>
-                        <th style="border: 1px solid #ddd; padding: 12px; text-align: left;">Contact</th>
-                        <th style="border: 1px solid #ddd; padding: 12px; text-align: left;">Email</th>
-                        <th style="border: 1px solid #ddd; padding: 12px; text-align: left;">URL</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {''.join(table_rows)}
-                </tbody>
-            </table>
-            """
-
-            html_body = f"""
-            <!DOCTYPE html>
-            <html>
-            <head>
-                <meta charset="UTF-8">
-                <style>
-                    body {{ font-family: Arial, sans-serif; line-height: 1.6; color: #333; }}
-                    .container {{ max-width: 1000px; margin: 0 auto; padding: 20px; }}
-                    .header {{ background-color: #f4f4f4; padding: 15px; border-radius: 5px; margin-bottom: 20px; }}
-                    .footer {{ margin-top: 30px; padding-top: 15px; border-top: 1px solid #ddd; font-size: 12px; color: #666; }}
-                </style>
-            </head>
-            <body>
-                <div class="container">
-                    <div class="header">
-                        <h2 style="margin: 0; color: #2c3e50;">Daily HR Tech Lead Generation Report</h2>
-                        <p style="margin: 5px 0 0 0; color: #7f8c8d;">Generated on {datetime.now().strftime('%Y-%m-%d at %H:%M')}</p>
-                    </div>
-
-                    <p>Hello Ariel,</p>
-                    <p>Here are the latest HR tech opportunities:</p>
-
-                    {html_table}
-
-                    <div class="footer">
-                        <p>This update was automatically generated by your HR Tech Lead Generation System.</p>
-                    </div>
-                </div>
-            </body>
-            </html>
-            """
-
-            # Plain text version
-            plain_body = f"""
-Hello Ariel,
-
-Here are the latest HR tech opportunities generated on {datetime.now().strftime('%Y-%m-%d at %H:%M')}.
-
-Generated {len(opportunities)} opportunities.
-
-Opportunities:
-"""
-            plain_body += "\n"
-            plain_body += f"{'#':<4} {'Company':<30} {'Signal Type':<30} {'Contact':<25} {'Email':<35}\n"
-            plain_body += "-" * 130 + "\n"
-            for idx, opp in enumerate(opportunities, start=1):
-                signal_name = SIGNAL_TYPES.get(opp.signal_type, "Unknown signal")
-                email_value = opp.email if opp.email else "Needs lookup"
-                person_value = opp.person if opp.person else "N/A"
-                company_short = (
-                    opp.company[:28] if len(opp.company) > 28 else opp.company
-                )
-                signal_short = (
-                    signal_name[:28] if len(signal_name) > 28 else signal_name
-                )
-                person_short = (
-                    person_value[:23] if len(person_value) > 23 else person_value
-                )
-                email_short = email_value[:33] if len(email_value) > 33 else email_value
-                plain_body += f"{idx:<4} {company_short:<30} {signal_short:<30} {person_short:<25} {email_short:<35}\n"
-                if opp.url:
-                    plain_body += f"     URL: {opp.url}\n"
-
-            plain_body += "\n---\nThis update was automatically generated by your HR Tech Lead Generation System."
-
-            msg.attach(MIMEText(plain_body, "plain"))
-            msg.attach(MIMEText(html_body, "html"))
+            filename = get_timestamped_filename(f"test_signal_{signal_id}")
+            save_results(opportunities, filename)
+            logger.info(f"Test completed: {len(opportunities)} opportunities saved")
         else:
-            # Fallback to original format if no opportunities provided
-            body = f"""
-Hello Ariel,
-
-Here are the latest HR tech opportunities generated on {datetime.now().strftime('%Y-%m-%d at %H:%M')}.
-
-{report_content}
-
----
-This update was automatically generated by your HR Tech Lead Generation System.
-            """
-            msg.attach(MIMEText(body, "plain"))
-
-        # Attach CSV file if provided
-        if csv_file_path and os.path.exists(csv_file_path):
-            with open(csv_file_path, "rb") as attachment:
-                part = MIMEBase("application", "octet-stream")
-                part.set_payload(attachment.read())
-                encoders.encode_base64(part)
-                part.add_header(
-                    "Content-Disposition",
-                    f"attachment; filename= {os.path.basename(csv_file_path)}",
-                )
-                msg.attach(part)
-
-        # Connect to server and send email
-        server = smtplib.SMTP(email_config["smtp_server"], email_config["smtp_port"])
-        server.starttls()
-        server.login(email_config["sender_email"], email_config["sender_password"])
-
-        text = msg.as_string()
-        server.sendmail(
-            email_config["sender_email"], email_config["recipient_email"], text
-        )
-        server.quit()
-
-        logger.info(
-            f"Email report sent successfully to {email_config['recipient_email']}"
-        )
-        return True
-
-    except Exception as e:
-        logger.error(f"Failed to send email report: {e}")
-        return False
+            logger.warning(f"No opportunities found for signal {signal_id}")
+        return opportunities
+    finally:
+        system.cleanup()
 
 
 def main() -> None:
     """Main execution function"""
-    # Acquire lock
-    if not acquire_lock():
+    if not acquire_lock(LOCK_FILE):
         sys.exit(1)
 
+    system = LeadGenerationSystem()
+
     try:
-        # Initialize services
-        if not initialize_services():
+        if not system.initialize():
             logger.error("Failed to initialize services")
             sys.exit(1)
 
         is_weekly_run = os.getenv("WEEKLY_RUN", "false").lower() == "true"
-        target_opportunities = int(os.getenv("TARGET_OPPORTUNITIES", "50"))
+        target = int(os.getenv("TARGET_OPPORTUNITIES", "50"))
         run_label = "weekly" if is_weekly_run else "daily"
 
-        logger.info(
-            "Starting %s run - Target: %s opportunities",
-            run_label,
-            target_opportunities,
-        )
+        logger.info(f"Starting {run_label} run - Target: {target} opportunities")
 
-        filtered_opportunities = run_full_lead_generation(target_opportunities)
+        filtered = system.run_full_lead_generation(target)
 
-        # Only send email if not run from scheduler (scheduler will send its own email)
+        # Send email if not skipped
         skip_email = os.getenv("SKIP_EMAIL", "false").lower() == "true"
 
-        if filtered_opportunities and not skip_email:
-            subject = (
-                f"Weekly HR Tech Lead Generation Report - {datetime.now().strftime('%Y-%m-%d')}"
-                if is_weekly_run
-                else "daily leads"
-            )
-            report_content = summarize_opportunities(
-                filtered_opportunities, target_opportunities
-            )
-            send_email_report(
-                report_content, "all_signals.csv", subject, filtered_opportunities
-            )
-        elif filtered_opportunities and skip_email:
+        if filtered and not skip_email:
+            system.send_report(filtered, target, is_weekly_run)
+        elif filtered and skip_email:
             logger.info("Skipping email send (handled by scheduler)")
         else:
             logger.warning("No opportunities generated during this run")
@@ -1165,10 +260,8 @@ def main() -> None:
     except Exception as e:
         logger.error(f"Workflow failed: {e}", exc_info=True)
     finally:
-        # Cleanup
-        if llm_service:
-            llm_service.stop_worker_thread()
-        release_lock()
+        system.cleanup()
+        release_lock(LOCK_FILE)
 
 
 if __name__ == "__main__":

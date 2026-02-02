@@ -7,7 +7,7 @@
 
     <key>ProgramArguments</key>
     <array>
-        <string>/Users/arielsanroj/PycharmProjects/outboundai/venv/bin/python3</string>
+        <string>/opt/homebrew/bin/python3</string>
         <string>/Users/arielsanroj/PycharmProjects/outboundai/weekly_scheduler.py</string>
     </array>
 
@@ -21,21 +21,15 @@
     <true/>
 
     <key>StandardOutPath</key>
-    <string>/Users/arielsanroj/PycharmProjects/outboundai/daily_scheduler.log</string>
+    <string>/Users/arielsanroj/PycharmProjects/outboundai/weekly_scheduler.log</string>
 
     <key>StandardErrorPath</key>
-    <string>/Users/arielsanroj/PycharmProjects/outboundai/daily_scheduler_error.log</string>
+    <string>/Users/arielsanroj/PycharmProjects/outboundai/weekly_scheduler_error.log</string>
 
     <key>EnvironmentVariables</key>
     <dict>
-        <key>NEWSDATA_API_KEY</key>
-        <string>***REMOVED***</string>
-        <key>EMAIL_PASSWORD</key>
-        <string>test-password</string>
-        <key>TARGET_OPPORTUNITIES</key>
-        <string>10</string>
-        <key>WEEKLY_RUN</key>
-        <string>false</string>
+        <key>PATH</key>
+        <string>/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
     </dict>
 </dict>
 </plist>
